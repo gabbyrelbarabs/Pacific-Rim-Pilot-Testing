@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pacific Rim: Pilot Training</title>
+<link rel="shortcut icon" type="x-icon" href="ppdc.ico" />
+<style>
+  :root { --bg:#030604; --panel:#07200a; --accent:#00ff66; --muted:#6ee7a7; color-scheme: dark; }
+  body, button, input, select, textarea {
+    font-family: "TT Lakes Neue", "TT Lakes Neue LT", "Microgramma", sans-serif;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  body { background: radial-gradient(ellipse at center, #051009 0%, #010201 70%); color:var(--accent); margin:0; padding:18px; }
+  h1 { margin:6px 0 16px; font-size:22px; color:var(--accent); text-shadow:0 0 8px rgba(0,255,120,0.08); }
+  h2 { color:var(--muted); font-weight:700; margin:6px 0; }
+  .center { text-align:center; }
+  .container { max-width:1200px; margin:0 auto; }
+  .row { display:flex; gap:12px; text-align:center;}
+  .panel { background:linear-gradient(180deg, rgba(0,255,120,0.02), rgba(0,255,120,0.01)); border:1px solid rgba(0,255,120,0.06); padding:12px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,0.6); }
+  .main-row { display:flex; gap:16px; align-items:flex-start; }
+  .left { width:360px; }
+  .right { flex:1; min-width:420px; }
+  button { background:linear-gradient(180deg,#062510,#04170d); color:var(--accent); border:1px solid rgba(0,255,120,0.06); padding:8px 10px; border-radius:8px; cursor:pointer; font-family:inherit; }
+  button:disabled { opacity:0.45; cursor:not-allowed; }
+  .small { font-size:13px; padding:6px 8px; }
+  .stat { font-size:13px; color:var(--muted); }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .log { height:320px; overflow:auto; background:rgba(0,0,0,0.45); padding:8px; border-radius:8px; font-family:inherit; font-size:13px; color:var(--accent); }
+  .log div { padding:6px 4px; border-bottom:1px dashed rgba(0,255,120,0.02); }
+  .big { font-weight:700; font-size:16px; }
+  .hpbar { height:12px; background:rgba(255,255,255,0.02); border-radius:6px; overflow:hidden; }
+  .hpbar > i { display:block; height:100%; background:linear-gradient(90deg,#16a34a,#86efac); width:100%; }
+  .kaiju-hp > i { background:linear-gradient(90deg,#ff4040,#ff9696); }
+  .fov { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,255,120,0); pointer-events:none; transition:background 0.25s ease; mix-blend-mode:screen; z-index:50; }
+  .fov.on { background:rgba(0,255,80,0.12); }
+  .warning-box { position:fixed; right:18px; top:18px; background:rgba(0,0,0,0.6); border:1px solid rgba(0,255,120,0.12); color: #001a00; padding:10px 12px; border-radius:8px; z-index:51; display:none; }
+  .warning-box.on { display:block; color:var(--accent); background:linear-gradient(180deg, rgba(0,30,0,0.6), rgba(0,10,0,0.9)); box-shadow:0 6px 30px rgba(0,255,120,0.05); }
+  .controls-hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  .jaeger-list { display:flex; flex-direction:column; gap:8px; }
+  .jaeger-item { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; background:rgba(0,0,0,0.15); cursor:pointer; }
+  .selected { outline:2px solid rgba(0,255,120,0.18); box-shadow:0 6px 20px rgba(0,255,120,0.03) inset; }
+  .muted-block { color:var(--muted); font-size:13px; }
+  .title-screen { display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; min-height:380px; }
+  .hidden { display:none !important; }
+  .qte-count { font-weight:800; font-size:18px; color:var(--accent); text-shadow:0 0 6px rgba(0,255,120,0.08); }
+  .kbd { background:rgba(0,0,0,0.2); padding:4px 8px; border-radius:6px; margin-left:6px; color:var(--muted); font-weight:700; }
+  .overlay { position:fixed; left:0; top:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; z-index:200; background:linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)); }
+  .result-box { width:520px; background:rgba(0,10,0,0.9); border:1px solid rgba(0,255,120,0.12); padding:20px; border-radius:12px; color:var(--accent); }
+  .result-line { margin:8px 0; color:var(--muted); }
+  .result-main { font-size:20px; font-weight:900; color:var(--accent); margin-bottom:8px; }
+  #transitionOverlay { position:fixed; left:0; top:0; right:0; bottom:0; z-index:9999; background:#000; opacity:0; display:none; transition:opacity 0.5s linear; }
+</style>
+
+<style>
+/* Initiation screen styles */
+#initScreen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  color: #7CFC00;
+  font-family: 'Orbitron', monospace;
+  text-align:center;
+  transition: opacity 1000ms ease;
+}
+#initScreen.hidden { opacity: 0; pointer-events:none; }
+#initScreen .glow {
+  position:absolute;
+  width: 30vw;
+  height: 30vw;
+  min-width:200px;
+  min-height:200px;
+  border-radius:50%;
+  background: radial-gradient(circle at center, rgba(124,252,0,0.18), rgba(124,252,0,0.06), rgba(0,0,0,0));
+  filter: blur(30px);
+  animation: glowGrow 4s ease-in-out forwards;
+  pointer-events:none;
+}
+@keyframes glowGrow {
+  0% { transform: scale(0.4); opacity:0.6; }
+  50% { transform: scale(1.15); opacity:1; }
+  100% { transform: scale(1.6); opacity:0.0; }
+}
+#initScreen .panel {
+  position:relative;
+  z-index: 2;
+  max-width: 80%;
+}
+#initScreen h1 {
+  margin:0;
+  font-size:28px;
+  letter-spacing:1px;
+  color:#8bff7a;
+  text-shadow: 0 0 8px rgba(124,252,0,0.25);
+}
+#initScreen p { margin:8px 0 0 0; color:#9fffa0; opacity:0.95; }
+#initScreen .sub { font-size:14px; color:#bfffc7; opacity:0.9; margin-top:12px; display:none; }
+#initScreen .clickHint { margin-top:16px; font-size:14px; color:#bfffc7; display:none; }
+</style>
+</head>
+<body>
+<!-- Initiation Screen -->
+<div id="initScreen" aria-hidden="false">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="panel">
+    <h1 id="initTitle">Initiating Systems</h1>
+    <p id="initStatus" class="sub"> </p>
+    <div id="initClickHint" class="clickHint">Click to continue</div>
+  </div>
+</div>
+
+<audio id="bgAudioA" loop preload="auto"></audio>
+<audio id="bgAudioB" loop preload="auto" style="display:none"></audio>
+
+<div class="container">
+  <div id="menuScreen" class="panel title-screen">
+    <div style="max-width:960px;">
+      <h1 class="center">Pacific Rim: Pilot Training</h1>
+      <div class="center muted-block">Text-based Battle Simulator</div>
+      <div style="height:18px"></div>
+      <div class="center">
+		<br>
+        <button id="playBtn" style="font-size:16px;padding:12px 18px;">INITIATE</button><br>
+        <button id="instructionsBtn" style="margin-top:10px;padding:10px 14px;">INSTRUCTIONS</button>
+      </div>
+      <div style="height:18px"></div>
+      <div id="instructionsPanel" class="hidden panel" style="margin-top:12px;">
+        <h2>Instructions & Jaeger Stats</h2>
+        <div class="muted-block">Hotkeys:<span class="kbd">Z</span> (1) · <span class="kbd">X</span> (2) · <span class="kbd">C</span> (3) · <span class="kbd">V</span> (4) — QTE: <span class="kbd">A</span> (Left) · <span class="kbd">D</span> (Right) · <span class="kbd">Space</span> (Block)</div>
+        <div style="height:10px"></div>
+        <div id="instructionsJaegers"></div>
+        <div style="height:8px"></div>
+        <div class="muted-block">Notes: Kaiju acts every 2s. If Kaiju prepares an attack a 2.0s QTE triggers — dodge or block before it lands. If you fail to input the Kaiju will still attempt to hit, but the hit will be subjected to your Jaeger's base passive dodge chance.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="deployScreen" class="panel hidden">
+    <div class="row" style="justify-content:space-between; text-align:center;">
+      <div>
+        <h2>Mission Briefing</h2>
+        <div class="muted-block">Current Mission:</div>
+        <div style="margin-top:8px;">
+          <div>Kaiju Category: <span id="deployKaijuCat" class="big">—</span></div>
+          <div>Time of Day: <span id="deployTimeOfDay" class="big">—</span></div>
+          <div>Location: <span id="deployLocation" class="big">—</span></div>
+          <div>Weather Status: <span id="deployWeather" class="big">—</span></div>
+        </div>
+      </div>
+      <div style="width:340px;">
+        <h2>Jaeger Deployment</h2>
+        <div class="muted-block">Choose a Jaeger — Deploy only enabled after selection</div>
+        <div style="height:8px"></div>
+        <div id="jaegerSelection" class="jaeger-list"></div>
+        <div style="height:8px"></div>
+        <button id="deployBtn" disabled>DEPLOY</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="battleScreen" class="panel hidden">
+    <div class="main-row">
+      <div class="left panel">
+        <div class="row" style="justify-content:space-between;">
+          <div><button id="backToDeploy">← BACK</button></div>
+          <div class="stat">Mode: <span id="modeLabel" class="stat">SETUP</span></div>
+        </div>
+        <div style="height:8px"></div>
+        <div class="stats-grid">
+          <div>
+            <div class="stat">Kaiju Category</div>
+            <div id="kaijuCategory" class="big">—</div>
+          </div>
+          <div>
+            <div class="stat">Battlefield</div>
+            <div id="battlefield" class="big">—</div>
+          </div>
+          <div>
+            <div class="stat">Weather</div>
+            <div id="weather" class="big">—</div>
+          </div>
+          <div>
+            <div class="stat">Starting Distance</div>
+            <div id="startDistance" class="big">—</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;">
+          <div class="stat">Selected Jaeger</div>
+          <div class="jaeger-card" id="jaegerCard">
+            <div><span id="jName" class="big">—</span> <span id="jStats" class="stat" style="margin-left:6px"></span></div>
+            <div style="margin-top:6px;">
+              <div class="stat">HP</div>
+              <div class="hpbar"><i id="jHP" style="width:100%"></i></div>
+            </div>
+            <div style="margin-top:6px;">
+              <div class="stat">Moves</div>
+              <div id="moveBtns" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;"></div>
+              <div class="controls-hint">Hotkeys:<br><br>· Z (1)<br>· X (2)<br>· C (3)<br>· V (4)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="stat">Kaiju Info</div>
+            <div class="kaiju-card" style="margin-top:6px;">
+              <div><span id="kName" class="big">—</span> <span id="kStats" class="stat"></span></div>
+              <div style="margin-top:6px;">
+                <div class="stat">HP</div>
+                <div class="hpbar kaiju-hp"><i id="kHP" style="width:100%"></i></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:260px;">
+            <div class="stat">Distance (m)</div>
+            <div class="big center" id="distance">—</div>
+            <div style="margin-top:6px;" class="stat">Actions</div>
+            <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;">
+              <button id="moveFwd" class="small">Move Forward</button>
+              <button id="moveBack" class="small">Move Back</button>
+            </div>
+            <div style="margin-top:8px;" id="cooldownNote" class="disabled-note"></div>
+            <div style="margin-top:6px;" class="controls-hint">Dodge: A (Left) · D (Right) · Space (Block)</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div class="stat">Battle Log</div>
+          <div class="log" id="log"></div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div id="qteArea" style="display:none;">
+            <div class="stat">Quick Time Event ACTIVE — Quick! Dodge or Block!</div>
+            <div style="display:flex;gap:8px;margin-top:8px;justify-content:center;">
+              <button id="dodgeLeft">Dodge Left (A)</button>
+              <button id="block">Block (Space)</button>
+              <button id="dodgeRight">Dodge Right (D)</button>
+            </div>
+            <div class="stat" style="margin-top:6px;">Time left: <span id="qteTimer" class="qte-count">2.0</span>s</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="resultOverlay" class="overlay hidden">
+    <div class="result-box">
+      <div id="resultMain" class="result-main">Mission Status</div>
+      <div id="resultStats"></div>
+      <div style="height:10px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+        <button id="retryBtn" class="small">RETRY</button>
+        <button id="redeployBtn" class="small">REDEPLOY</button>
+        <button id="mainMenuBtn" class="small">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="fov" class="fov"></div>
+  <div id="warnBox" class="warning-box"><div id="warnText"></div></div>
+
+</div>
+
+<div id="transitionOverlay"></div>
+
+<script>
+(() => {
+  const battlefields = ['City', 'Field', 'Sea', 'Underwater'];
+  const weathers = ['Stormy', 'Dry'];
+  const timesOfDay = ['Day','Night'];
+  const kaijuCategories = ['I','II','III','IV','V'];
+
+  const JAEGERS = {
+    'Gipsy Danger': {
+      mark: 'Mark-III',
+      power: 8, agility: 7, armor: 6, maxHP: 160,
+      height: '79 m', weight: '1,980 t',
+      moves: [
+        {id:'hammer', name:'Z - Hammer Strike', type:'melee', mult:1.2, cd:1700, desc:'Double-arm down slam.'},
+        {id:'jet', name:'X - Jet Punch', type:'melee', mult:1.0, cd:1500, desc:'Jet-propulsed punch.'},
+        {id:'plasma', name:'C - Plasma Cannon', type:'ranged', mult:1.5, cd:2000, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
+        {id:'reactor', name:'V - Reactor Burnout', type:'ranged', mult:2.7, cd:3500, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
+      ]
+    },
+    'Cherno Alpha': {
+      mark: 'Mark-I',
+      power: 10, agility: 3, armor: 10, maxHP: 180,
+      height: '85 m', weight: '2,400 t',
+      moves: [
+        {id:'plasmf', name:'Z - Plasma Fist', type:'melee', mult:1.6, cd:2000, unusableIn:['Sea'], desc:'Devastating melee (no sea).'},
+        {id:'flame', name:'X - Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], desc:'Ranged flame (no storm).'},
+        {id:'hydraulic', name:'C - Hydraulic Punch', type:'melee', mult:2.0, cd:2500, desc:'Hydraulic impact (less in storm).'},
+        {id:'tcharge', name:'V - Titan Charge', type:'melee', mult:2.5, cd:4500, unusableIn:['City'], desc:'Big charge (weaker in storm).'}
+      ]
+    },
+    'Striker Eureka': {
+      mark: 'Mark-V',
+      power: 10, agility: 10, armor: 9, maxHP: 120,
+      height: '76 m', weight: '1,750 t',
+      moves: [
+        {id:'six', name:'Z - Six Shooter', type:'ranged', mult:2.5, cd:2900, desc:'Anti-Kaiju Missiles.'},
+        {id:'twin', name:'X - Twin Slasher', type:'melee', mult:1.0, cd:1450, desc:'Sting blades.'},
+        {id:'rapid', name:'C - Rapid Combo', type:'melee', mult:1.1, cd:1350, unusableIn:['Underwater'], desc:'High velocity punches.'},
+        {id:'serrate', name:'V - Serration', type:'melee', mult:1.3, cd:1000, desc:'Serrated blades.'}
+      ]
+    }, 'Crimson Typhoon': {
+	  mark: 'Mark-IV',
+      power: 8, agility: 9, armor: 6, maxHP: 150,
+      height: '76 m', weight: '1,900 t',
+      moves: [
+        {id:'z_dual_strike', name:'Z - Dual Strike', type:'melee', mult:1.2, cd:1400, desc:'Twin-drill melee strike.'},
+        {id:'x_overthrow', name:'X - Overthrow', type:'melee', mult:2.0, cd:2500, unusableIn:['Underwater'], desc:'Spinning overthrow (weaker underwater).'},
+        {id:'c_thundercloud', name:'C - Thundercloud', type:'melee', mult:2.2, cd:2800, unusableIn:['City'], desc:'Heavy clouded impact.'},
+        {id:'v_snipe', name:'V - Snipe', type:'ranged', mult:3.0, cd:4500, unusableIn:['City'], desc:'Long-range precision shot.'}
+      ]
+    },
+    'Diablo Intercept': {
+      power: 8, agility: 7, armor: 8, maxHP: 140,
+      mark: 'Mark-II',
+      height: '82 m', weight: '2,100 t',
+      moves: [
+        {id:'z_hell_punch', name:'Z - Hell Punch', type:'melee', mult:1.3, cd:1700, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater'], desc:'Devastating hell punch (weaker in storm/sea/underwater).'},
+        {id:'x_flamethrower', name:'X - Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], unusableIn:['Underwater'], desc:'Ranged flame (no effect in stormy or underwater).'},
+        {id:'c_hellbot_reign', name:'C - Hellbot Reign', type:'ranged', mult:2.0, cd:2600, unusableIn:['Underwater'], desc:'Area reign of fire (weaker in underwater).'},
+        {id:'v_infernado', name:'V - Infernado', type:'melee', mult:2.0, cd:2400, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater', 'City'], desc:'Infernal tornado melee (weaker in storm/sea/underwater).'}
+      ]
+    },
+    'Coyote Tango': {
+      power: 7, agility: 5, armor: 4, maxHP: 150,
+      mark: 'Mark-I',
+      height: '74 m', weight: '1,600 t',
+      moves: [
+        {id:'z_canine_assault', name:'Z - Canine Assault', type:'melee', mult:1.1, cd:1500, desc:'Quick canine strike.'},
+        {id:'x_shellcrusher', name:'X - Shellcrusher', type:'melee', mult:1.6, cd:2000, desc:'Armored shell breaker.'},
+        {id:'c_throwdown', name:'C - Throwdown', type:'melee', mult:1.9, cd:2300, unusableIn:['Underwater', 'City'], desc:'Powerful throwdown (weaker underwater).'},
+        {id:'v_plasma_mortar', name:'V - Plasma Mortar', type:'ranged', mult:2.6, cd:3000, unusableIn:['Underwater'], desc:'High-explosive plasma mortar (unusable underwater).'}
+      ]
+    },
+	'Warrior Exodus': {
+      power: 10, agility: 9, armor: 9, maxHP: 170,
+      mark: 'Mark-VI',
+      height: '84 m', weight: '2,050 t',
+      moves: [
+        {id:'z_twist_and_turn', name:'Z - Twist and Turn', type:'melee', mult:1.9, cd:2600, desc:'Close combat emergency move.'},
+        {id:'x_guerilla', name:'X - Guerilla', type:'melee', mult:1.4, cd:1700, desc:'Unpredictable barrage of attacks.'},
+        {id:'c_left_right_goodnight', name:'C - Left Right Goodnight', type:'melee', mult:1.6, cd:2000, desc:'Synergized barrage of punches.'},
+        {id:'v_core_burst', name:'V - Core Burst', type:'ranged', mult:2.5, cd:4500, unusableIn:['Underwater'], selfHPcostPct:0.10, desc:'Forced core meltdown (-10% HP).'}
+      ]
+    }
+};
+
+  const KAIJU_BASE = {
+    'I': {power:5, agility:5, armor:3, maxHP:80, namePrefix:'Lesser'},
+    'II':{power:7, agility:6, armor:5, maxHP:110, namePrefix:'Minor'},
+    'III':{power:10, agility:8, armor:8, maxHP:160, namePrefix:'Standard'},
+    'IV':{power:14, agility:9, armor:12, maxHP:220, namePrefix:'Heavy'},
+    'V': {power:20, agility:10, armor:16, maxHP:320, namePrefix:'Alpha'}
+  };
+
+  const KAIJU_MOVES = [
+    {id:'bite', name:'Bite', type:'melee', mult:1.0, desc:'Close-range bite.'},
+    {id:'tail', name:'Tail Swipe', type:'melee', mult:1.1, desc:'Sweeping tail.'},
+    {id:'stomp', name:'Stomp', type:'melee', mult:1.2, desc:'Heavy stomp.'},
+    {id:'beam', name:'Bio Beam', type:'ranged', mult:1.3, desc:'Ranged bio-beam.'},
+    {id:'spit', name:'Acid Spit', type:'ranged', mult:1.0, desc:'Irritating corrosive spit.'}
+  ];
+
+  // --- STATE (small change: add globalDisableExcept and timeout id)
+  const state = {
+    battlefield:null, weather:null, timeOfDay:null, kaijuCategory:null,
+    jaeger:null, kaiju:null,
+    distance:null,
+    mode:'SETUP',
+    cooldowns:{},
+    globalDisableUntil:0,
+    globalDisableExcept: null,          // <<< new: which move id is exempt from the short global lock
+    globalDisableTimeoutId: null,       // <<< new: timeout id for clearing the exempt
+    gameOver:false,
+    kaijuIntervalId:null, kaijuPendingAttack:null, qteTimeoutId:null,
+    snapshot:null,
+    totalDamageDealt:0,
+    battleStartTime:null
+  };
+
+  // --- DOM refs
+  const menuScreen = document.getElementById('menuScreen');
+  const instructionsBtn = document.getElementById('instructionsBtn');
+  const instructionsPanel = document.getElementById('instructionsPanel');
+  const instructionsJaegers = document.getElementById('instructionsJaegers');
+  const playBtn = document.getElementById('playBtn');
+
+  const deployScreen = document.getElementById('deployScreen');
+  const deployKaijuCat = document.getElementById('deployKaijuCat');
+  const deployLocation = document.getElementById('deployLocation');
+  const deployWeather = document.getElementById('deployWeather');
+  const deployTimeOfDay = document.getElementById('deployTimeOfDay');
+  const jaegerSelection = document.getElementById('jaegerSelection');
+  const deployBtn = document.getElementById('deployBtn');
+
+  const battleScreen = document.getElementById('battleScreen');
+  const backToDeploy = document.getElementById('backToDeploy');
+  const kaijuCategoryEl = document.getElementById('kaijuCategory');
+  const battlefieldEl = document.getElementById('battlefield');
+  const weatherEl = document.getElementById('weather');
+  const startDistanceEl = document.getElementById('startDistance');
+  const jNameEl = document.getElementById('jName');
+  const jStatsEl = document.getElementById('jStats');
+  const jHPbar = document.getElementById('jHP');
+  const kNameEl = document.getElementById('kName');
+  const kStatsEl = document.getElementById('kStats');
+  const kHPbar = document.getElementById('kHP');
+  const distanceEl = document.getElementById('distance');
+  const logEl = document.getElementById('log');
+  const moveBtnsDiv = document.getElementById('moveBtns');
+  const moveFwdBtn = document.getElementById('moveFwd');
+  const moveBackBtn = document.getElementById('moveBack');
+  const cooldownNote = document.getElementById('cooldownNote');
+  const modeLabel = document.getElementById('modeLabel');
+  const fovEl = document.getElementById('fov');
+  const qteArea = document.getElementById('qteArea');
+  const qteTimerEl = document.getElementById('qteTimer');
+  const warnBox = document.getElementById('warnBox');
+  const warnText = document.getElementById('warnText');
+
+  const dodgeLeftBtn = document.getElementById('dodgeLeft');
+  const dodgeRightBtn = document.getElementById('dodgeRight');
+  const blockBtn = document.getElementById('block');
+
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultMain = document.getElementById('resultMain');
+  const resultStats = document.getElementById('resultStats');
+  const retryBtn = document.getElementById('retryBtn');
+  const redeployBtn = document.getElementById('redeployBtn');
+  const mainMenuBtn = document.getElementById('mainMenuBtn');
+
+  const transitionOverlay = document.getElementById('transitionOverlay');
+
+  // --- utilities
+  const randInt = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+  const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+  function log(text) {
+    const d = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.textContent = `${d} — ${text}`;
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function transitionTo(callback) {
+    return new Promise(resolve => {
+      transitionOverlay.style.display = 'block';
+      requestAnimationFrame(()=> { transitionOverlay.style.opacity = '1'; });
+      setTimeout(()=> {
+        try { callback(); } catch(e){ console.error(e); }
+        setTimeout(()=> {
+          transitionOverlay.style.opacity = '0';
+          setTimeout(()=> {
+            transitionOverlay.style.display = 'none';
+            resolve();
+          }, 500);
+        }, 20);
+      }, 500);
+    });
+  }
+
+  // --- populate instructions
+  function populateInstructions() {
+    instructionsJaegers.innerHTML = '';
+    Object.keys(JAEGERS).forEach(name=>{
+      const j = JAEGERS[name];
+      const el = document.createElement('div');
+      el.className = 'panel';
+      el.style.marginBottom = '8px';
+      el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><strong>${name}</strong><div class="muted-block">${j.height} · ${j.weight}</div></div>
+        <div class="muted-block">Power:${j.power} Agi:${j.agility} Armor:${j.armor}</div>
+      </div>
+      <div style="margin-top:6px;font-size:13px;color:var(--muted)"><strong>Moves:</strong> ${j.moves.map(m=>m.name+' ('+m.type+')').join(' · ')}</div>`;
+      instructionsJaegers.appendChild(el);
+    });
+  }
+  instructionsBtn.onclick = () => { instructionsPanel.classList.toggle('hidden'); };
+
+  // --- deployment screen prep
+  function prepareDeployScreen() {
+    state.battlefield = battlefields[randInt(0,battlefields.length-1)];
+    state.weather = weathers[randInt(0,weathers.length-1)];
+    state.timeOfDay = timesOfDay[randInt(0,timesOfDay.length-1)];
+    state.kaijuCategory = kaijuCategories[randInt(0,kaijuCategories.length-1)];
+    deployKaijuCat.innerText = 'Category ' + state.kaijuCategory;
+    deployLocation.innerText = state.battlefield;
+    deployWeather.innerText = state.weather;
+    deployTimeOfDay.innerText = state.timeOfDay;
+    jaegerSelection.innerHTML = '';
+    Object.keys(JAEGERS).forEach(name=>{
+      const tpl = JAEGERS[name];
+      const item = document.createElement('div');
+      item.className = 'jaeger-item';
+      item.dataset.name = name;
+      item.innerHTML = `<div>
+          <div style="font-weight:800">${name} <span style="font-weight:400;color:var(--muted);font-size:12px">${tpl.mark ? '('+tpl.mark+')' : ''}</span></div>
+          <div class="muted-block">${tpl.height} · ${tpl.weight}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted-block">Pwr:${tpl.power} Agi:${tpl.agility} Arm:${tpl.armor}</div>
+          <div style="height:6px"></div>
+          <div class="muted-block" style="font-size:12px">${tpl.moves.map((m,i)=>(''+(i+1)+'. '+m.name)).join(' · ')}</div>
+        </div>`;
+      item.onclick = () => {
+        document.querySelectorAll('.jaeger-item').forEach(n=>n.classList.remove('selected'));
+        item.classList.add('selected');
+        state.jaeger = {
+          key:name, name,
+          mark: tpl.mark || '',
+          power:tpl.power, agility:tpl.agility, armor:tpl.armor,
+          height: tpl.height || '', weight: tpl.weight || '',
+          maxHP:tpl.maxHP, hp:tpl.maxHP,
+          moves: JSON.parse(JSON.stringify(tpl.moves))
+        };
+        deployBtn.disabled = false;
+      };
+      jaegerSelection.appendChild(item);
+    });
+  }
+
+  playBtn.onclick = () => {
+    transitionTo(()=> {
+      menuScreen.classList.add('hidden');
+      deployScreen.classList.remove('hidden');
+      prepareDeployScreen();
+      populateInstructions();
+      state.mode = 'DEPLOY';
+      log('Entered deployment briefing.');
+    });
+  };
+
+  deployBtn.onclick = () => {
+    if(!state.jaeger) { alert('Choose a Jaeger first.'); return; }
+    log(`Jaeger selected for deployment: ${state.jaeger.name}`);
+    state.snapshot = {
+      jaegerKey: state.jaeger.key,
+      kaijuCategory: state.kaijuCategory,
+      battlefield: state.battlefield,
+      weather: state.weather,
+      timeOfDay: state.timeOfDay,
+      startDistance: randInt(100,150)
+    };
+    transitionTo(()=> {
+      deployScreen.classList.add('hidden');
+      battleScreen.classList.remove('hidden');
+      startBattleFromSnapshot();
+    });
+  };
+
+  backToDeploy.addEventListener('click', () => {
+  if(state.mode === 'BATTLE' && !state.gameOver) {
+    log('Pilot initiated surrender/retreat via BACK button.');
+    showResultOverlay('retreat');
+    endGame('surrender','lose');
+  } else {
+    transitionTo(()=> { prepareDeployScreen(); });
+  }
+});
+
+  function startBattleFromSnapshot() {
+    if(!state.snapshot) return;
+    state.kaijuCategory = state.snapshot.kaijuCategory;
+    state.battlefield = state.snapshot.battlefield;
+    state.weather = state.snapshot.weather;
+    state.timeOfDay = state.snapshot.timeOfDay;
+    const pk = state.snapshot.jaegerKey;
+    const tpl = JAEGERS[pk];
+    state.jaeger = {
+      key: pk, name: pk,
+      power: tpl.power, agility: tpl.agility, armor: tpl.armor,
+      maxHP: tpl.maxHP, hp: tpl.maxHP,
+      moves: JSON.parse(JSON.stringify(tpl.moves))
+    };
+    state.distance = state.snapshot.startDistance;
+    createKaijuFromCategory(state.kaijuCategory);
+    state.totalDamageDealt = 0;
+    state.battleStartTime = Date.now();
+    setupBattleInit();
+    renderJaegerCard();
+    updateDisplays();
+    state.mode = 'BATTLE';
+    modeLabel.innerText = 'BATTLE';
+    state.gameOver = false;
+    clearKaijuLoop();
+    state.kaijuIntervalId = setInterval(kaijuAI, 2000);
+    log('Kaiju position detected, battle initiated.');
+  }
+
+  function restartBattleSame() {
+    if(!state.snapshot) return;
+    clearAllTimers();
+    logEl.innerHTML = '';
+    log(`Jaeger selected for deployment: ${state.snapshot.jaegerKey}`);
+    transitionTo(()=> {
+      startBattleFromSnapshot();
+      hideResultOverlay();
+    });
+  }
+
+  function redeployToSelection() {
+    if(!state.snapshot) return;
+    clearAllTimers();
+    logEl.innerHTML = '';
+    state.battlefield = state.snapshot.battlefield;
+    state.weather = state.snapshot.weather;
+    state.timeOfDay = state.snapshot.timeOfDay;
+    state.kaijuCategory = state.snapshot.kaijuCategory;
+    deployKaijuCat.innerText = 'Category ' + state.kaijuCategory;
+    deployLocation.innerText = state.battlefield;
+    deployWeather.innerText = state.weather;
+    deployTimeOfDay.innerText = state.timeOfDay;
+    transitionTo(()=> {
+      battleScreen.classList.add('hidden');
+      deployScreen.classList.remove('hidden');
+      document.querySelectorAll('.jaeger-item').forEach(it => {
+        it.classList.remove('selected');
+        if(it.dataset.name === state.snapshot.jaegerKey) it.classList.add('selected');
+      });
+      const tpl = JAEGERS[state.snapshot.jaegerKey];
+      state.jaeger = {
+        key: state.snapshot.jaegerKey, name: state.snapshot.jaegerKey,
+        power: tpl.power, agility: tpl.agility, armor: tpl.armor,
+        maxHP: tpl.maxHP, hp: tpl.maxHP,
+        moves: JSON.parse(JSON.stringify(tpl.moves))
+      };
+      deployBtn.disabled = false;
+      log(`Jaeger selected for deployment: ${state.jaeger.name}`);
+      hideResultOverlay();
+    });
+  }
+
+  function endGame(reason, resultType='lose') {
+    state.gameOver = true;
+    state.mode = 'SETUP';
+    modeLabel.innerText = 'RESULT';
+    clearKaijuLoop();
+    cancelKaijuPending('Battle ended: ' + reason);
+    updateCooldownUI();
+  }
+
+  function clearKaijuLoop() {
+    if(state.kaijuIntervalId) { clearInterval(state.kaijuIntervalId); state.kaijuIntervalId = null; }
+  }
+  function clearAllTimers() {
+    clearKaijuLoop();
+    if(state.kaijuPendingAttack && state.kaijuPendingAttack.timer) clearTimeout(state.kaijuPendingAttack.timer);
+    if(state.qteTimeoutId) { clearTimeout(state.qteTimeoutId); state.qteTimeoutId = null; }
+    // clear the global-disable timeout if present and reset exemption
+    if(state.globalDisableTimeoutId) { clearTimeout(state.globalDisableTimeoutId); state.globalDisableTimeoutId = null; }
+    state.globalDisableExcept = null;
+    state.globalDisableUntil = 0;
+  }
+
+  function createKaijuFromCategory(cat) {
+    const base = KAIJU_BASE[cat];
+    const name = `${base.namePrefix} Kaiju - Category ${cat}`;
+    const mcopy = [...KAIJU_MOVES];
+    const moves = [];
+    for(let i=0;i<3;i++){
+      const idx = randInt(0,mcopy.length-1);
+      moves.push(mcopy.splice(idx,1)[0]);
+    }
+    state.kaiju = { name, power: base.power, agility: base.agility, armor: base.armor, maxHP: base.maxHP, hp: base.maxHP, moves };
+    kNameEl.innerText = state.kaiju.name;
+    kStatsEl.innerText = `Power:${state.kaiju.power} Agi:${state.kaiju.agility}% Armor:${state.kaiju.armor}%`;
+    kHPbar.style.width = '100%';
+    log(`Spawned Kaiju: ${state.kaiju.name} — HP:${state.kaiju.maxHP}`);
+  }
+
+  function setupBattleInit() {
+    kaijuCategoryEl.innerText = 'Category ' + state.kaijuCategory;
+    battlefieldEl.innerText = state.battlefield;
+    weatherEl.innerText = state.weather;
+    startDistanceEl.innerText = state.distance + ' m';
+    distanceEl.innerText = Math.round(state.distance) + ' m';
+  }
+
+  function renderJaegerCard() {
+    if(!state.jaeger) return;
+    jNameEl.innerText = state.jaeger.name + (state.jaeger.mark ? ' ('+state.jaeger.mark+')' : '');
+    jStatsEl.innerText = `Power:${state.jaeger.power} Agi:${state.jaeger.agility}% Armor:${state.jaeger.armor}%`;
+    jHPbar.style.width = (state.jaeger.hp/state.jaeger.maxHP*100)+'%';
+    moveBtnsDiv.innerHTML = '';
+    state.jaeger.moves.forEach((m,idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'small';
+      btn.id = 'move_'+m.id;
+      btn.innerHTML = `${m.name} <span style="font-size:11px;color:var(--muted)">(${m.type})</span>`;
+      btn.onclick = () => playerAttack(m.id);
+      moveBtnsDiv.appendChild(btn);
+      const hint = document.createElement('span');
+      hint.style.fontSize='11px'; hint.style.color='var(--muted)'; hint.style.marginLeft='8px';
+      hint.textContent = ['Z','X','C','V'][idx] ? '('+['Z','X','C','V'][idx]+')' : '';
+      btn.appendChild(hint);
+    });
+  }
+
+  function updateDisplays() {
+    if(state.jaeger) jHPbar.style.width = clamp(state.jaeger.hp/state.jaeger.maxHP*100,0,100)+'%';
+    if(state.kaiju) kHPbar.style.width = clamp(state.kaiju.hp/state.kaiju.maxHP*100,0,100)+'%';
+    distanceEl.innerText = Math.max(0,Math.round(state.distance)) + ' m';
+  }
+
+  moveFwdBtn.onclick = () => playerMove('forward');
+  moveBackBtn.onclick = () => playerMove('back');
+
+  function playerMove(dir) {
+    if(state.mode !== 'BATTLE' && state.mode !== 'QTE') return;
+    if(state.gameOver) return;
+    const now = performance.now();
+    if(now < (state.globalDisableUntil || 0) || (state.cooldowns['move'] && state.cooldowns['move'] > now)) { cooldownNote.innerText = 'Buttons are on cooldown... wait.'; return; }
+    if(dir==='forward') {
+      const gain = randInt(30,55);
+      state.distance = clamp(state.distance - gain, 0, 1000);
+      log(`Pilot moves forward ${gain} m → distance ${Math.round(state.distance)} m`);
+      setCooldown('move',700);
+    } else {
+      const gain = randInt(25,55);
+      state.distance = clamp(state.distance + gain, 0, 1000);
+      log(`Pilot moves back ${gain} m → distance ${Math.round(state.distance)} m`);
+      setCooldown('move',700);
+      if(state.kaijuPendingAttack) {
+        cancelKaijuPending('Jaeger moved away — Kaiju attack canceled.');
+      }
+	  if(state.distance >= 1000) {
+      log('Jaeger retreated to maximum distance — mission failed.');
+      showResultOverlay('retreat');
+      endGame('retreat','lose');
+      return;
+      }
+    }
+    updateDisplays();
+	updateCooldownUI();
+  }
+
+  function isAnyCooldownActive() {
+    const now = performance.now();
+    return Object.values(state.cooldowns).some(t=>t>now);
+  }
+  function setCooldown(id, ms) {
+    state.cooldowns[id] = performance.now() + ms;
+    updateCooldownUI();
+    setTimeout(()=>{ delete state.cooldowns[id]; updateCooldownUI(); }, ms+20);
+  }
+
+  // --- UPDATED: updateCooldownUI now respects a 'global-disable-except' move id
+  function updateCooldownUI() {
+  const now = performance.now();
+  const globalDisabled = now < (state.globalDisableUntil || 0);
+
+  // update each move button individually:
+  // - disabled if global disabled OR if that specific move is on cooldown
+  document.querySelectorAll('#moveBtns button').forEach(b => {
+    const bid = b.id.replace('move_','');
+    const onCd = state.cooldowns[bid] && state.cooldowns[bid] > now;
+    b.disabled = globalDisabled || onCd;
+  });
+
+  // show note if any active cooldown or during global disable
+  const any = globalDisabled || Object.values(state.cooldowns).some(t => t > now);
+  cooldownNote.innerText = any ? 'On cooldown...' : '';
+}
+
+  window.addEventListener('keydown', (e) => {
+    if(document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+    const key = e.key.toLowerCase();
+    if(key === 'z') triggerAttackHotkey(0);
+    if(key === 'x') triggerAttackHotkey(1);
+    if(key === 'c') triggerAttackHotkey(2);
+    if(key === 'v') triggerAttackHotkey(3);
+    if(key === 'a') qteResolve('left');
+    if(key === 'd') qteResolve('right');
+    if(key === ' ') { e.preventDefault(); qteResolve('block'); }
+  });
+
+  function triggerAttackHotkey(idx) {
+    if(!state.jaeger) return;
+    const move = state.jaeger.moves[idx];
+    if(move) playerAttack(move.id);
+  }
+
+  // --- UPDATED: playerAttack now exempts the pressed move from the short global lock
+  function playerAttack(moveId) {
+  if((state.mode !== 'BATTLE' && state.mode !== 'QTE')) return;
+  if(state.gameOver) return;
+
+  const now = performance.now();
+
+  // Respect short global lock first
+  if(now < (state.globalDisableUntil || 0)) {
+    cooldownNote.innerText = 'Busy.';
+    return;
+  }
+
+  const move = state.jaeger.moves.find(m => m.id === moveId);
+  if(!move) return;
+
+  // check move-specific cooldown
+  if(state.cooldowns[move.id] && state.cooldowns[move.id] > now) {
+    cooldownNote.innerText = 'Move on cooldown.';
+    return;
+  }
+  if(move.unusableIn && move.unusableIn.includes(state.battlefield)) {
+    log(`Move ${move.name} unusable in ${state.battlefield}.`);
+    setCooldown(move.id, 600);
+    return;
+  }
+  if(move.unusableInWeather && move.unusableInWeather.includes(state.weather)) {
+    log(`${move.name} unusable in ${state.weather} weather.`);
+    setCooldown(move.id, 600);
+    return;
+  }
+  if(move.type === 'ranged' && state.distance >= 100) {
+    log(`${move.name} out of range (out of ranged range).`);
+    setCooldown(move.id, 600);
+    return;
+  }
+  if(move.type === 'melee' && state.distance > 40) {
+    log(`Too far — ${move.name} can't reach.`);
+    setCooldown(move.id, 600);
+    return;
+  }
+
+  // optional self HP cost
+  if(move.selfHPcostPct) {
+    const cost = Math.ceil(state.jaeger.maxHP * (move.selfHPcostPct || 0));
+    state.jaeger.hp = Math.max(0, state.jaeger.hp - cost);
+    log(`${move.name} consumes ${cost} HP as cost.`);
+  }
+
+  const base = state.jaeger.power * (move.mult || 1);
+  const dmg = computeFinalDamage(base, state.jaeger, state.kaiju, state.distance);
+  if(dmg > 0) {
+    state.kaiju.hp = Math.max(0, Math.round(state.kaiju.hp - dmg));
+    state.totalDamageDealt = (state.totalDamageDealt || 0) + dmg;
+    log(`Jaeger used ${move.name} and dealt ${Math.round(dmg)} dmg.`);
+  } else {
+    log(`Jaeger used ${move.name}, but Kaiju dodged!`);
+  }
+
+  // set per-move cooldown (the pressed button stays disabled until its own CD expires)
+  setCooldown(move.id, move.cd || 1000);
+
+  // set global short disable (0.5s) that disables *all* buttons for a mini-lock
+  state.globalDisableUntil = now + 500;
+
+  updateDisplays();
+  updateCooldownUI();
+  checkEndConditions();
+}
+
+  function computeFinalDamage(baseDamage, attacker, defender, distance) {
+    let dodgeMul = 1;
+    if(distance >= 31 && distance <= 40) dodgeMul = 4;
+    else if(distance >= 26 && distance <= 30) dodgeMul = 3;
+    else if(distance >= 21 && distance <= 25) dodgeMul = 2;
+    else dodgeMul = 1;
+    let dodgeChance = clamp(defender.agility/100 * dodgeMul, 0, 0.9);
+    if(defender === state.kaiju && defender.hp < defender.maxHP*0.3) {
+      dodgeChance *= 1.2; dodgeChance = Math.min(dodgeChance, 0.95);
+    }
+    if(Math.random() < dodgeChance) return 0;
+    let closenessMul = 1;
+    if(distance <= 10) {
+      const extra = (10 - distance) * 0.1;
+      closenessMul = 1 + extra;
+      if(distance <= 1) closenessMul = 2;
+      closenessMul = Math.min(closenessMul, 2);
+    }
+    const dmgAfterArmor = baseDamage * closenessMul * (1 - defender.armor/100);
+    return Math.max(0, Math.round(dmgAfterArmor));
+  }
+
+  function kaijuAI() {
+    if(state.gameOver || !state.kaiju) return;
+    if(state.kaijuPendingAttack) return;
+    const lowHP = state.kaiju.hp < state.kaiju.maxHP*0.3;
+    if(lowHP && Math.random() < 0.7) {
+      const baseMove = randInt(25,45);
+      const gain = Math.round(baseMove * 1.2);
+      state.distance = clamp(state.distance + gain, 0, 1000);
+      log(`Kaiju panics and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
+      updateDisplays(); return;
+    }
+    const choices = [];
+    if(state.distance <= 60) choices.push('attack');
+    choices.push('approach','retreat');
+    const action = choices[randInt(0,choices.length-1)];
+    if(action === 'attack') {
+      const melee = state.kaiju.moves.filter(m=>m.type==='melee');
+      const ranged = state.kaiju.moves.filter(m=>m.type==='ranged');
+      let move;
+      if(state.distance <= 40 && melee.length) move = melee[randInt(0,melee.length-1)];
+      else if(ranged.length && Math.random() < 0.6) move = ranged[randInt(0,ranged.length-1)];
+      else move = state.kaiju.moves[randInt(0,state.kaiju.moves.length-1)];
+      queueKaijuAttack(move);
+    } else if(action === 'approach') {
+      const gain = randInt(25,45);
+      state.distance = clamp(state.distance - gain, 0, 1000);
+      log(`Kaiju charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
+      updateDisplays();
+    } else {
+      const gain = randInt(25,45);
+      state.distance = clamp(state.distance + gain, 0, 1000);
+      log(`Kaiju shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
+      updateDisplays();
+    }
+  }
+
+  function queueKaijuAttack(move) {
+    if(move.type === 'ranged' && state.distance >= 100) {
+      log(`Kaiju attempted ${move.name} but distance ${Math.round(state.distance)} m is too far — it moves closer instead.`);
+      const g = randInt(20,45);
+      state.distance = clamp(state.distance - g, 0, 1000);
+      updateDisplays(); return;
+    }
+    state.kaijuPendingAttack = {
+      move,
+      side: ['left','right','middle'][randInt(0,2)],
+      startAt: Date.now()
+    };
+    fovEl.classList.add('on');
+    warnText.innerText = `Kaiju preparing ${move.name} — QTE incoming!`;
+    warnBox.classList.add('on');
+    qteArea.style.display = 'block';
+    state.mode = 'QTE'; modeLabel.innerText = 'QTE';
+    let remain = 2.0;
+    qteTimerEl.innerText = remain.toFixed(1);
+    function tick() {
+      remain -= 0.1;
+      qteTimerEl.innerText = Math.max(0,remain).toFixed(1);
+      if(remain <= 0) {
+        resolveKaijuAttack(null);
+      } else {
+        state.qteTimeoutId = setTimeout(tick,100);
+      }
+    }
+    state.qteTimeoutId = setTimeout(tick,100);
+    state.kaijuPendingAttack.timer = setTimeout(()=> resolveKaijuAttack(null), 2000);
+    log(`Kaiju is winding up ${move.name} — QTE (2.0s). Prepare to A/D or Space!`);
+  }
+
+  function cancelKaijuPending(reason) {
+    if(!state.kaijuPendingAttack) return;
+    const m = state.kaijuPendingAttack;
+    if(m.timer) clearTimeout(m.timer);
+    if(state.qteTimeoutId) clearTimeout(state.qteTimeoutId);
+    state.kaijuPendingAttack = null;
+    fovEl.classList.remove('on');
+    warnBox.classList.remove('on');
+    qteArea.style.display = 'none';
+    state.mode = 'BATTLE'; modeLabel.innerText = 'BATTLE';
+    log(reason || 'Kaiju attack canceled.');
+  }
+
+  function resolveKaijuAttack(playerChoice) {
+    if(!state.kaijuPendingAttack) return;
+    if(state.kaijuPendingAttack.timer) clearTimeout(state.kaijuPendingAttack.timer);
+    if(state.qteTimeoutId) clearTimeout(state.qteTimeoutId);
+    const attack = state.kaijuPendingAttack;
+    state.kaijuPendingAttack = null;
+    fovEl.classList.remove('on');
+    warnBox.classList.remove('on');
+    qteArea.style.display = 'none';
+    state.mode = 'BATTLE'; modeLabel.innerText = 'BATTLE';
+    const d = state.distance;
+    if(attack.move.type === 'melee' && d > 40) {
+      log(`Kaiju attempted ${attack.move.name} but target moved out of melee range (${d} m). Attack canceled.`);
+      updateDisplays(); return;
+    }
+    if(attack.move.type === 'ranged' && d >= 100) {
+      log(`Kaiju attempted ${attack.move.name} but it's out of ranged range (${d} m). Attack canceled.`);
+      updateDisplays(); return;
+    }
+    function passiveHitRoll() {
+      let dodgeMul = 1;
+      if(d >= 31 && d <= 40) dodgeMul = 4;
+      else if(d >= 26 && d <= 30) dodgeMul = 3;
+      else if(d >= 21 && d <= 25) dodgeMul = 2;
+      else dodgeMul = 1;
+      let dodgeChance = clamp(state.jaeger.agility/100 * dodgeMul, 0, 0.9);
+      if(state.jaeger.hp < state.jaeger.maxHP*0.3) { dodgeChance *= 1.1; dodgeChance = Math.min(dodgeChance, 0.95); }
+      return Math.random() < dodgeChance;
+    }
+    const move = attack.move;
+    const attackSide = attack.side;
+    if(playerChoice === null) {
+      // timed out — passive roll applies
+      if(passiveHitRoll()) {
+        // evade
+        log(`Kaiju used ${move.name} (${attackSide}). You evaded the hit!`);
+      } else {
+        // hit
+        const damage = computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d);
+        if(damage > 0) {
+          state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
+          log(`Kaiju used ${move.name} (${attackSide}). You were hit for ${damage} dmg.`);
+        } else {
+          log(`Kaiju used ${move.name} (${attackSide}). Kaiju's attack did no damage.`);
+        }
+      }
+    } else {
+      // player actively chose dodge/block
+      if(attackSide === 'middle') {
+        if(playerChoice === 'block') {
+          if(passiveHitRoll()) {
+            const damage = Math.round(computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d) * 0.75);
+            if(damage > 0) {
+              state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
+              log(`Kaiju used ${move.name} (${attackSide}). Block reduced damage — you took ${damage} dmg.`);
+            } else {
+              log(`Kaiju used ${move.name} (${attackSide}). Block held — Kaiju missed!`);
+            }
+          } else {
+            log(`Kaiju used ${move.name} (${attackSide}). Block held — Kaiju missed!`);
+          }
+        } else {
+          log(`Kaiju used ${move.name} (${attackSide}). You didn't block — Kaiju missed!`);
+        }
+      } else {
+        // DIRECTION-SPECIFIC: left/right attacks
+        // Behavior change requested:
+        // - If Kaiju attacks "right", player must dodge "left" OR block to fully avoid
+        // - Dodging the same side as the attack (e.g. dodge right vs attack right) will NOT guarantee avoid —
+        //   it will be resolved via the passive dodge chance (agility); if passive roll fails, player gets hit.
+        // - Mirror for left attack.
+        const dirText = playerChoice === 'left' ? 'left' : (playerChoice === 'right' ? 'right' : playerChoice);
+
+        if(playerChoice === 'block') {
+          // block now fully avoids left/right attacks as requested
+          log(`Kaiju used ${move.name} (${attackSide}). You blocked the attack!`);
+        } else if(playerChoice !== attackSide) {
+          // player dodged the opposite direction -> full evade
+          log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+        } else {
+          // player dodged the same side as attack -> chance to evade based on agility
+          if(passiveHitRoll()) {
+            log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+          } else {
+            const damage = computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d);
+            if(damage > 0) {
+              state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
+              log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} but were hit for ${damage} dmg.`);
+            } else {
+              log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+            }
+          }
+        }
+      }
+    }
+    updateDisplays();
+    checkEndConditions();
+  }
+
+  function qteResolve(choice) {
+    if(!state.kaijuPendingAttack) return;
+    if(state.mode !== 'QTE') return;
+    resolveKaijuAttack(choice);
+  }
+  dodgeLeftBtn.onclick = () => qteResolve('left');
+  dodgeRightBtn.onclick = () => qteResolve('right');
+  blockBtn.onclick = () => qteResolve('block');
+
+  function checkEndConditions() {
+    if(state.kaiju && state.kaiju.hp <= 0) {
+      log('Kaiju defeated! You win 🏆');
+      showResultOverlay('win');
+      endGame('victory','win');
+      return;
+    }
+    if(state.jaeger && state.jaeger.hp <= 0) {
+      showResultOverlay('lose');
+      endGame('defeat','lose');
+      return;
+    }
+  }
+
+  function showResultOverlay(type) {
+  // Minimal change: treat 'retreat' as a failure and display Jaeger HP above Kaiju HP
+  resultOverlay.classList.remove('hidden');
+  if(type === 'lose' || type === 'retreat') resultMain.textContent = 'Mission Status: Failure';
+  else resultMain.textContent = 'Mission Status: Successful';
+
+  const totalDamage = state.totalDamageDealt || 0;
+  const now = Date.now();
+  const durationMs = state.battleStartTime ? Math.max(0, now - state.battleStartTime) : 0;
+  const hh = String(Math.floor(durationMs/3600000)).padStart(2,'0');
+  const mm = String(Math.floor((durationMs%3600000)/60000)).padStart(2,'0');
+  const ss = String(Math.floor((durationMs%60000)/1000)).padStart(2,'0');
+  const durationStr = `${hh}:${mm}:${ss}`;
+
+  let statHtml = `<div class="result-line">Total Damage Dealt: <strong style="color:var(--accent)">${totalDamage}</strong></div>`;
+  statHtml += `<div class="result-line">Battle Duration: <strong style="color:var(--accent)">${durationStr}</strong></div>`;
+
+  if(type === 'retreat') {
+    // show Jaeger HP first, then Kaiju HP (both visible) — retreat counts as failure
+    const jaegerPct = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(2) : '0.00';
+    const kaijuPct = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
+    statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${jaegerPct}%</strong></div>`;
+    statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${kaijuPct}%</strong></div>`;
+    statHtml += `<div class="result-line" style="color:var(--muted)">Pilot retreated — mission counted as failure.</div>`;
+  } else if(type === 'lose') {
+    const percent = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
+    statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
+  } else {
+    const percent = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(2) : '0.00';
+    statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
+  }
+
+  resultStats.innerHTML = statHtml;
+
+  retryBtn.onclick = () => {
+    transitionTo(()=> {
+      restartBattleSame();
+    });
+  };
+  redeployBtn.onclick = () => {
+    transitionTo(()=> {
+      redeployToSelection();
+    });
+  };
+  mainMenuBtn.onclick = () => {
+    transitionTo(()=> { location.reload(); });
+  };
+}
+  function hideResultOverlay() { resultOverlay.classList.add('hidden'); }
+
+  populateInstructions();
+  window.addEventListener('beforeunload', ()=> { clearAllTimers(); });
+
+})();
+</script>
+
+<script>
+(function(){
+  // Initiation Sequence timings (ms)
+  const seq = [
+    {text: "Initiating Systems", dots:true, duration:3000},
+    {text: "Systems Initiated", dots:false, duration:1000},
+    {text: "Calibrating", dots:true, duration:3000},
+    {text: "Systems Calibrated", dots:false, duration:1000},
+    {text: "Welcome, Ranger", dots:false, duration:0}
+  ];
+  const initScreen = document.getElementById('initScreen');
+  const title = document.getElementById('initTitle');
+  const dots = document.getElementById('initDots');
+  const clickHint = document.getElementById('initClickHint');
+
+  function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+  async function runSequence(){
+    for (let step of seq){
+      title.textContent = step.text;
+      if (step.dots){
+        await sleep(step.duration);
+        await sleep(120); // small pause to let interval clear
+      } else {
+        // show text for duration if >0
+        if (step.duration > 0) await sleep(step.duration);
+      }
+    }
+    clickHint.style.display = 'block';
+    // reveal subtext if exists
+    initScreen.setAttribute('aria-hidden','false');
+  }
+
+  // Audio crossfader using two audio elements
+  const audioA = document.getElementById('bgAudioA');
+  const audioB = document.getElementById('bgAudioB');
+  let cur = null; // 'A' or 'B'
+  let fadeInterval = null;
+
+  function setAudioElementVisible(el, visible){
+    try { el.style.display = visible ? '' : 'none'; } catch(e){}
+  }
+
+  function crossfadeTo(src, duration=1500){
+    // if same src already playing, no-op
+    const activeEl = (cur === 'A') ? audioA : (cur === 'B' ? audioB : null);
+    if (activeEl && activeEl.src && activeEl.src.indexOf(src) !== -1 && !activeEl.paused) {
+      return;
+    }
+    const incoming = (cur === 'A' || cur === null) ? audioB : audioA;
+    const outgoing = (incoming === audioA) ? audioB : audioA;
+    try {
+      incoming.src = src;
+      incoming.loop = true;
+      incoming.volume = 0;
+      incoming.play().catch(()=>{ /* play may be blocked until user gesture */ });
+      setAudioElementVisible(incoming, true);
+    } catch(e){}
+    const steps = 30;
+    const stepTime = Math.max(10, Math.floor(duration/steps));
+    let step = 0;
+    if (fadeInterval) clearInterval(fadeInterval);
+    fadeInterval = setInterval(()=>{
+      step++;
+      const t = step / steps;
+      incoming.volume = Math.min(1, t);
+      if (outgoing) outgoing.volume = Math.max(0, 1 - t);
+      if (step >= steps){
+        clearInterval(fadeInterval);
+        fadeInterval = null;
+        if (outgoing && !outgoing.paused){
+          try { outgoing.pause(); } catch(e){}
+        }
+        incoming.volume = 1;
+        cur = (incoming === audioA) ? 'A' : 'B';
+      }
+    }, stepTime);
+  }
+
+  function playImmediate(src){
+    const incoming = audioA;
+    const other = audioB;
+    try{
+      other.pause(); other.currentTime = 0;
+      incoming.src = src;
+      incoming.loop = true;
+      incoming.volume = 1;
+      incoming.play().catch(()=>{ /* may require user gesture */});
+      cur = 'A';
+      setAudioElementVisible(audioA, true);
+      setAudioElementVisible(audioB, false);
+    }catch(e){}
+  }
+
+  runSequence();
+
+  initScreen.addEventListener('click', function handler(e){
+    if (clickHint.style.display === 'block'){
+      // start background audio pacific.mp3
+      playImmediate('pacific.mp3');
+      // fade out overlay
+      initScreen.classList.add('hidden');
+      // allow pointer events to pass after transition
+      setTimeout(()=>{ initScreen.style.display = 'none'; }, 1000);
+      // remove listener
+      initScreen.removeEventListener('click', handler);
+    }
+  });
+
+  function safeQuery(id){ return document.getElementById(id); }
+  const playBtn = safeQuery('playBtn');
+  const deployBtn = safeQuery('deployBtn');
+
+  if (playBtn){
+    playBtn.addEventListener('click', ()=>{
+      crossfadeTo('shatterdome.mp3', 1500);
+    });
+  }
+  if (deployBtn){
+    deployBtn.addEventListener('click', ()=>{
+      crossfadeTo('family.mp3', 1500);
+    });
+  }
+
+})();
+</script>
+</body>
+</html>

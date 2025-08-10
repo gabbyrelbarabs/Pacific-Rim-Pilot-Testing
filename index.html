@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Pacific Rim: Pilot Training</title>
-<link rel="shortcut icon" type="x-icon" href="ppdc.ico" />
+<link rel="shortcut icon" type="image/x-icon" href="ppdc.ico" />
 <style>
   :root { --bg:#030604; --panel:#07200a; --accent:#00ff66; --muted:#6ee7a7; color-scheme: dark; }
   body, button, input, select, textarea {
@@ -50,6 +50,38 @@
   .result-line { margin:8px 0; color:var(--muted); }
   .result-main { font-size:20px; font-weight:900; color:var(--accent); margin-bottom:8px; }
   #transitionOverlay { position:fixed; left:0; top:0; right:0; bottom:0; z-index:9999; background:#000; opacity:0; display:none; transition:opacity 0.5s linear; }
+
+
+/* small changes: keep init dots on same line, keep glow visible */
+#initScreen .glow {
+  position:absolute;
+  width: 30vw;
+  height: 30vw;
+  min-width:200px;
+  min-height:200px;
+  border-radius:50%;
+  background: radial-gradient(circle at center, rgba(124,252,0,0.18), rgba(124,252,0,0.06), rgba(0,0,0,0));
+  filter: blur(30px);
+  animation: glowGrow 4s ease-in-out forwards;
+  pointer-events:none;
+}
+
+/* animation grows and stays visible (no fade-out to 0 opacity) */
+@keyframes glowGrow {
+  0%   { transform: scale(0.4);  opacity: 0.6; }
+  50%  { transform: scale(1.15); opacity: 1;   }
+  100% { transform: scale(1.15); opacity: 1;   } /* stays visible */
+}
+
+/* display status dots inline with title */
+#initScreen .sub {
+  font-size:14px;
+  color:#bfffc7;
+  opacity:0.9;
+  margin:0 0 0 8px;        /* small left spacing from title */
+  display:inline-block;    /* keep dots on the same line as the title */
+  vertical-align:middle;
+}
 </style>
 
 <style>
@@ -69,20 +101,8 @@
   transition: opacity 1000ms ease;
 }
 #initScreen.hidden { opacity: 0; pointer-events:none; }
-#initScreen .glow {
-  position:absolute;
-  width: 30vw;
-  height: 30vw;
-  min-width:200px;
-  min-height:200px;
-  border-radius:50%;
-  background: radial-gradient(circle at center, rgba(124,252,0,0.18), rgba(124,252,0,0.06), rgba(0,0,0,0));
-  filter: blur(30px);
-  animation: glowGrow 4s ease-in-out forwards;
-  pointer-events:none;
-}
-@keyframes glowGrow {
-  0% { transform: scale(0.4); opacity:0.6; }
+
+
   50% { transform: scale(1.15); opacity:1; }
   100% { transform: scale(1.6); opacity:0.0; }
 }
@@ -99,17 +119,19 @@
   text-shadow: 0 0 8px rgba(124,252,0,0.25);
 }
 #initScreen p { margin:8px 0 0 0; color:#9fffa0; opacity:0.95; }
-#initScreen .sub { font-size:14px; color:#bfffc7; opacity:0.9; margin-top:12px; display:none; }
+
 #initScreen .clickHint { margin-top:16px; font-size:14px; color:#bfffc7; display:none; }
+#initStatus {
+  margin-left: 8px;
+  font-weight: normal;
+}
 </style>
 </head>
 <body>
-<!-- Initiation Screen -->
 <div id="initScreen" aria-hidden="false">
   <div class="glow" aria-hidden="true"></div>
   <div class="panel">
-    <h1 id="initTitle">Initiating Systems</h1>
-    <p id="initStatus" class="sub"> </p>
+    <h1><span id="initTitle">Initiating Systems</span><span id="initStatus" class="sub"></span></h1>
     <div id="initClickHint" class="clickHint">Click to continue</div>
   </div>
 </div>
@@ -130,7 +152,7 @@
       </div>
       <div style="height:18px"></div>
       <div id="instructionsPanel" class="hidden panel" style="margin-top:12px;">
-        <h2>Instructions & Jaeger Stats</h2>
+        <h2>Instructions & Jaeger Information</h2>
         <div class="muted-block">Hotkeys:<span class="kbd">Z</span> (1) · <span class="kbd">X</span> (2) · <span class="kbd">C</span> (3) · <span class="kbd">V</span> (4) — QTE: <span class="kbd">A</span> (Left) · <span class="kbd">D</span> (Right) · <span class="kbd">Space</span> (Block)</div>
         <div style="height:10px"></div>
         <div id="instructionsJaegers"></div>
@@ -146,7 +168,7 @@
         <h2>Mission Briefing</h2>
         <div class="muted-block">Current Mission:</div>
         <div style="margin-top:8px;">
-          <div>Kaiju Category: <span id="deployKaijuCat" class="big">—</span></div>
+          <div>Category: <span id="deployKaijuCat" class="big">—</span></div>
           <div>Time of Day: <span id="deployTimeOfDay" class="big">—</span></div>
           <div>Location: <span id="deployLocation" class="big">—</span></div>
           <div>Weather Status: <span id="deployWeather" class="big">—</span></div>
@@ -167,7 +189,7 @@
     <div class="main-row">
       <div class="left panel">
         <div class="row" style="justify-content:space-between;">
-          <div><button id="backToDeploy">← BACK</button></div>
+          <div><button id="backToDeploy">← RETREAT</button></div>
           <div class="stat">Mode: <span id="modeLabel" class="stat">SETUP</span></div>
         </div>
         <div style="height:8px"></div>
@@ -274,11 +296,9 @@
 <div id="transitionOverlay"></div>
 
 <script>
-(() => {
   const battlefields = ['City', 'Field', 'Sea', 'Underwater'];
   const weathers = ['Stormy', 'Dry'];
   const timesOfDay = ['Day','Night'];
-  const kaijuCategories = ['I','II','III','IV','V'];
 
   const JAEGERS = {
     'Gipsy Danger': {
@@ -286,10 +306,10 @@
       power: 8, agility: 7, armor: 6, maxHP: 160,
       height: '79 m', weight: '1,980 t',
       moves: [
-        {id:'hammer', name:'Z - Hammer Strike', type:'melee', mult:1.2, cd:1700, desc:'Double-arm down slam.'},
-        {id:'jet', name:'X - Jet Punch', type:'melee', mult:1.0, cd:1500, desc:'Jet-propulsed punch.'},
-        {id:'plasma', name:'C - Plasma Cannon', type:'ranged', mult:1.5, cd:2000, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
-        {id:'reactor', name:'V - Reactor Burnout', type:'ranged', mult:2.7, cd:3500, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
+        {id:'hammer', name:'Hammer Strike', type:'melee', mult:1.2, cd:1700, desc:'Double-arm down slam.'},
+        {id:'jet', name:'Jet Punch', type:'melee', mult:1.0, cd:1500, desc:'Jet-propulsed punch.'},
+        {id:'plasma', name:'Plasma Cannon', type:'ranged', mult:1.5, cd:2000, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
+        {id:'reactor', name:'Reactor Burnout', type:'ranged', mult:2.7, cd:3500, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
       ]
     },
     'Cherno Alpha': {
@@ -297,10 +317,10 @@
       power: 10, agility: 3, armor: 10, maxHP: 180,
       height: '85 m', weight: '2,400 t',
       moves: [
-        {id:'plasmf', name:'Z - Plasma Fist', type:'melee', mult:1.6, cd:2000, unusableIn:['Sea'], desc:'Devastating melee (no sea).'},
-        {id:'flame', name:'X - Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], desc:'Ranged flame (no storm).'},
-        {id:'hydraulic', name:'C - Hydraulic Punch', type:'melee', mult:2.0, cd:2500, desc:'Hydraulic impact (less in storm).'},
-        {id:'tcharge', name:'V - Titan Charge', type:'melee', mult:2.5, cd:4500, unusableIn:['City'], desc:'Big charge (weaker in storm).'}
+        {id:'plasmf', name:'Plasma Fist', type:'melee', mult:1.6, cd:2000, unusableIn:['Sea'], desc:'Devastating melee (no sea).'},
+        {id:'flame', name:'Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], desc:'Ranged flame (no storm).'},
+        {id:'hydraulic', name:'Hydraulic Punch', type:'melee', mult:2.0, cd:2500, desc:'Hydraulic impact (less in storm).'},
+        {id:'tcharge', name:'Titan Charge', type:'melee', mult:2.5, cd:4500, unusableIn:['City'], selfHPcostPct:0.08, desc:'Big charge (weaker in storm).'}
       ]
     },
     'Striker Eureka': {
@@ -308,20 +328,20 @@
       power: 10, agility: 10, armor: 9, maxHP: 120,
       height: '76 m', weight: '1,750 t',
       moves: [
-        {id:'six', name:'Z - Six Shooter', type:'ranged', mult:2.5, cd:2900, desc:'Anti-Kaiju Missiles.'},
-        {id:'twin', name:'X - Twin Slasher', type:'melee', mult:1.0, cd:1450, desc:'Sting blades.'},
-        {id:'rapid', name:'C - Rapid Combo', type:'melee', mult:1.1, cd:1350, unusableIn:['Underwater'], desc:'High velocity punches.'},
-        {id:'serrate', name:'V - Serration', type:'melee', mult:1.3, cd:1000, desc:'Serrated blades.'}
+        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:2900, desc:'Anti-Kaiju Missiles.'},
+        {id:'twin', name:'Twin Slasher', type:'melee', mult:1.0, cd:1450, desc:'Sting blades.'},
+        {id:'rapid', name:'Rapid Combo', type:'melee', mult:1.1, cd:1350, unusableIn:['Underwater'], desc:'High velocity punches.'},
+        {id:'serrate', name:'Serration', type:'melee', mult:1.3, cd:1000, desc:'Serrated blades.'}
       ]
     }, 'Crimson Typhoon': {
 	  mark: 'Mark-IV',
       power: 8, agility: 9, armor: 6, maxHP: 150,
       height: '76 m', weight: '1,900 t',
       moves: [
-        {id:'z_dual_strike', name:'Z - Dual Strike', type:'melee', mult:1.2, cd:1400, desc:'Twin-drill melee strike.'},
-        {id:'x_overthrow', name:'X - Overthrow', type:'melee', mult:2.0, cd:2500, unusableIn:['Underwater'], desc:'Spinning overthrow (weaker underwater).'},
-        {id:'c_thundercloud', name:'C - Thundercloud', type:'melee', mult:2.2, cd:2800, unusableIn:['City'], desc:'Heavy clouded impact.'},
-        {id:'v_snipe', name:'V - Snipe', type:'ranged', mult:3.0, cd:4500, unusableIn:['City'], desc:'Long-range precision shot.'}
+        {id:'z_dual_strike', name:'Dual Strike', type:'melee', mult:1.2, cd:1400, desc:'Twin-drill melee strike.'},
+        {id:'x_overthrow', name:'Overthrow', type:'melee', mult:2.0, cd:2500, unusableIn:['Underwater'], desc:'Spinning overthrow (weaker underwater).'},
+        {id:'c_thundercloud', name:'Thundercloud', type:'melee', mult:2.2, cd:2800, unusableIn:['City'], desc:'Heavy clouded impact.'},
+        {id:'v_snipe', name:'Snipe', type:'ranged', mult:3.0, cd:4500, unusableIn:['City'], desc:'Long-range precision shot.'}
       ]
     },
     'Diablo Intercept': {
@@ -329,10 +349,10 @@
       mark: 'Mark-II',
       height: '82 m', weight: '2,100 t',
       moves: [
-        {id:'z_hell_punch', name:'Z - Hell Punch', type:'melee', mult:1.3, cd:1700, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater'], desc:'Devastating hell punch (weaker in storm/sea/underwater).'},
-        {id:'x_flamethrower', name:'X - Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], unusableIn:['Underwater'], desc:'Ranged flame (no effect in stormy or underwater).'},
-        {id:'c_hellbot_reign', name:'C - Hellbot Reign', type:'ranged', mult:2.0, cd:2600, unusableIn:['Underwater'], desc:'Area reign of fire (weaker in underwater).'},
-        {id:'v_infernado', name:'V - Infernado', type:'melee', mult:2.0, cd:2400, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater', 'City'], desc:'Infernal tornado melee (weaker in storm/sea/underwater).'}
+        {id:'z_hell_punch', name:'Hell Punch', type:'melee', mult:1.3, cd:1700, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater'], desc:'Devastating hell punch (weaker in storm/sea/underwater).'},
+        {id:'x_flamethrower', name:'Flamethrower', type:'ranged', mult:1.8, cd:2300, unusableInWeather:['Stormy'], unusableIn:['Underwater'], desc:'Ranged flame (no effect in stormy or underwater).'},
+        {id:'c_hellbot_reign', name:'Hellbot Reign', type:'ranged', mult:2.0, cd:2600, unusableIn:['Underwater'], desc:'Area reign of fire (weaker in underwater).'},
+        {id:'v_infernado', name:'Infernado', type:'melee', mult:2.0, cd:2400, unusableInWeather:['Stormy'], unusableIn:['Sea','Underwater', 'City'], desc:'Infernal tornado melee (weaker in storm/sea/underwater).'}
       ]
     },
     'Coyote Tango': {
@@ -340,10 +360,10 @@
       mark: 'Mark-I',
       height: '74 m', weight: '1,600 t',
       moves: [
-        {id:'z_canine_assault', name:'Z - Canine Assault', type:'melee', mult:1.1, cd:1500, desc:'Quick canine strike.'},
-        {id:'x_shellcrusher', name:'X - Shellcrusher', type:'melee', mult:1.6, cd:2000, desc:'Armored shell breaker.'},
-        {id:'c_throwdown', name:'C - Throwdown', type:'melee', mult:1.9, cd:2300, unusableIn:['Underwater', 'City'], desc:'Powerful throwdown (weaker underwater).'},
-        {id:'v_plasma_mortar', name:'V - Plasma Mortar', type:'ranged', mult:2.6, cd:3000, unusableIn:['Underwater'], desc:'High-explosive plasma mortar (unusable underwater).'}
+        {id:'z_canine_assault', name:'Canine Assault', type:'melee', mult:1.1, cd:1500, desc:'Quick canine strike.'},
+        {id:'x_shellcrusher', name:'Shellcrusher', type:'melee', mult:1.6, cd:2000, desc:'Armored shell breaker.'},
+        {id:'c_throwdown', name:'Throwdown', type:'melee', mult:1.9, cd:2300, unusableIn:['Underwater', 'City'], desc:'Powerful throwdown (weaker underwater).'},
+        {id:'v_plasma_mortar', name:'Plasma Mortar', type:'ranged', mult:2.6, cd:3000, unusableIn:['Underwater'], desc:'High-explosive plasma mortar (unusable underwater).'}
       ]
     },
 	'Warrior Exodus': {
@@ -351,20 +371,42 @@
       mark: 'Mark-VI',
       height: '84 m', weight: '2,050 t',
       moves: [
-        {id:'z_twist_and_turn', name:'Z - Twist and Turn', type:'melee', mult:1.9, cd:2600, desc:'Close combat emergency move.'},
-        {id:'x_guerilla', name:'X - Guerilla', type:'melee', mult:1.4, cd:1700, desc:'Unpredictable barrage of attacks.'},
-        {id:'c_left_right_goodnight', name:'C - Left Right Goodnight', type:'melee', mult:1.6, cd:2000, desc:'Synergized barrage of punches.'},
-        {id:'v_core_burst', name:'V - Core Burst', type:'ranged', mult:2.5, cd:4500, unusableIn:['Underwater'], selfHPcostPct:0.10, desc:'Forced core meltdown (-10% HP).'}
+        {id:'z_twist_and_turn', name:'Twist and Turn', type:'melee', mult:1.9, cd:2600, desc:'Close combat emergency move.'},
+        {id:'x_guerilla', name:'Guerilla', type:'melee', mult:1.4, cd:1700, desc:'Unpredictable barrage of attacks.'},
+        {id:'c_left_right_goodnight', name:'Left Right Goodnight', type:'melee', mult:1.6, cd:2000, desc:'Synergized barrage of punches.'},
+        {id:'v_core_burst', name:'Core Burst', type:'ranged', mult:2.5, cd:4500, selfHPcostPct:0.10, desc:'Forced core meltdown (-10% HP).'}
       ]
     }
-};
+  };
 
   const KAIJU_BASE = {
-    'I': {power:5, agility:5, armor:3, maxHP:80, namePrefix:'Lesser'},
-    'II':{power:7, agility:6, armor:5, maxHP:110, namePrefix:'Minor'},
-    'III':{power:10, agility:8, armor:8, maxHP:160, namePrefix:'Standard'},
-    'IV':{power:14, agility:9, armor:12, maxHP:220, namePrefix:'Heavy'},
-    'V': {power:20, agility:10, armor:16, maxHP:320, namePrefix:'Alpha'}
+    'I': {power:6, agility:3, armor:5, maxHP:100, namePrefix:'Lesser'},
+    'II':{power:8, agility:5, armor:6, maxHP:150, namePrefix:'Minor'},
+    'III':{power:10, agility:8, armor:8, maxHP:200, namePrefix:'Standard'},
+    'IV':{power:15, agility:9, armor:10, maxHP:250, namePrefix:'Heavy'},
+    'V': {power:20, agility:10, armor:15, maxHP:320, namePrefix:'Alpha'},
+    'VI':{power:32, agility:7, armor:20, maxHP:500, namePrefix:'Mega'}
+  };
+
+  const KAIJU_NAMES = {
+    'I': [
+      'Karloff','Hardship','Hammerjaw','Ceptid','Tengu','Rippers','Minor Kaiju'
+    ],
+    'II': [
+      'Onibaba','Raythe','Clawhook','Lesser Kaiju'
+    ],
+    'III': [
+      'Yamarashi','Knifehead','Atticon','Huo Da','Tarantulos','Hammerhorn','Acidquill','Greater Kaiju'
+    ],
+    'IV': [
+      'Otachi','Leatherback','Gyakushu','Mutavore','Spinejackal','Raiju','Scunner','Hakuja','Shrikethorn','Jawhide','Copperhead','Trespasser','Heavy Kaiju'
+    ],
+    'V': [
+      'Slattern','Raijin','Crabcakes','Frightcrawler','Alpha Kaiju'
+    ],
+    'VI': [
+      'Breacher','Mega-Kaiju'
+    ]
   };
 
   const KAIJU_MOVES = [
@@ -375,7 +417,6 @@
     {id:'spit', name:'Acid Spit', type:'ranged', mult:1.0, desc:'Irritating corrosive spit.'}
   ];
 
-  // --- STATE (small change: add globalDisableExcept and timeout id)
   const state = {
     battlefield:null, weather:null, timeOfDay:null, kaijuCategory:null,
     jaeger:null, kaiju:null,
@@ -383,8 +424,8 @@
     mode:'SETUP',
     cooldowns:{},
     globalDisableUntil:0,
-    globalDisableExcept: null,          // <<< new: which move id is exempt from the short global lock
-    globalDisableTimeoutId: null,       // <<< new: timeout id for clearing the exempt
+    globalDisableExcept: null,
+    globalDisableTimeoutId: null,
     gameOver:false,
     kaijuIntervalId:null, kaijuPendingAttack:null, qteTimeoutId:null,
     snapshot:null,
@@ -392,7 +433,6 @@
     battleStartTime:null
   };
 
-  // --- DOM refs
   const menuScreen = document.getElementById('menuScreen');
   const instructionsBtn = document.getElementById('instructionsBtn');
   const instructionsPanel = document.getElementById('instructionsPanel');
@@ -445,7 +485,6 @@
 
   const transitionOverlay = document.getElementById('transitionOverlay');
 
-  // --- utilities
   const randInt = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
   const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
   function log(text) {
@@ -473,7 +512,6 @@
     });
   }
 
-  // --- populate instructions
   function populateInstructions() {
     instructionsJaegers.innerHTML = '';
     Object.keys(JAEGERS).forEach(name=>{
@@ -491,12 +529,29 @@
   }
   instructionsBtn.onclick = () => { instructionsPanel.classList.toggle('hidden'); };
 
-  // --- deployment screen prep
+  function pickKaijuCategory() {
+    const weights = [
+      {cat: 'I',   w: 13},
+      {cat: 'II',  w: 17},
+      {cat: 'III', w: 30},
+      {cat: 'IV',  w: 25},
+      {cat: 'V',   w: 10},
+      {cat: 'VI',  w: 5}
+    ];
+    const total = weights.reduce((s, x) => s + x.w, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i].w;
+      if (r <= 0) return weights[i].cat;
+    }
+    return weights[weights.length - 1].cat;
+  }
+
   function prepareDeployScreen() {
     state.battlefield = battlefields[randInt(0,battlefields.length-1)];
     state.weather = weathers[randInt(0,weathers.length-1)];
     state.timeOfDay = timesOfDay[randInt(0,timesOfDay.length-1)];
-    state.kaijuCategory = kaijuCategories[randInt(0,kaijuCategories.length-1)];
+    state.kaijuCategory = pickKaijuCategory();
     deployKaijuCat.innerText = 'Category ' + state.kaijuCategory;
     deployLocation.innerText = state.battlefield;
     deployWeather.innerText = state.weather;
@@ -563,14 +618,35 @@
   };
 
   backToDeploy.addEventListener('click', () => {
-  if(state.mode === 'BATTLE' && !state.gameOver) {
-    log('Pilot initiated surrender/retreat via BACK button.');
-    showResultOverlay('retreat');
-    endGame('surrender','lose');
-  } else {
-    transitionTo(()=> { prepareDeployScreen(); });
+    if(state.mode === 'BATTLE' && !state.gameOver) {
+      log(`${state.jaeger && state.jaeger.name ? state.jaeger.name : '${shortName(state.jaeger)}'} has retreated! Mission failed.`);
+      showResultOverlay('retreat');
+      endGame('surrender','lose');
+    } else {
+      transitionTo(()=> { prepareDeployScreen(); });
+    }
+  });
+
+  function createKaijuFromCategory(cat) {
+    const base = (typeof KAIJU_BASE !== 'undefined' && KAIJU_BASE[cat]) ? KAIJU_BASE[cat] : {
+      hp: 100, armor: 0, agility: 0, moves: [], namePrefix: ('Category ' + cat)
+    };
+    const namesList = (typeof KAIJU_NAMES !== 'undefined' && KAIJU_NAMES[cat]) ? KAIJU_NAMES[cat].slice() : [base.namePrefix || ('Category ' + cat)];
+    const chosen = namesList[Math.floor(Math.random() * namesList.length)];
+    const name = `${chosen} - Category ${cat}`;
+    const k = {
+      id: 'kaiju-' + Math.floor(Math.random() * 1000000),
+      name: name,
+      category: cat,
+      power: base.power || 0,                // <--- FIX: include Kaiju power (was missing)
+      maxHP: base.maxHP || base.hp || 100,
+      hp: base.maxHP || base.hp || 100,
+      armor: base.armor || 0,
+      agility: base.agility || 0,
+      moves: (base.moves && base.moves.slice()) || (KAIJU_MOVES.slice())
+    };
+    return k;
   }
-});
 
   function startBattleFromSnapshot() {
     if(!state.snapshot) return;
@@ -587,7 +663,7 @@
       moves: JSON.parse(JSON.stringify(tpl.moves))
     };
     state.distance = state.snapshot.startDistance;
-    createKaijuFromCategory(state.kaijuCategory);
+    state.kaiju = createKaijuFromCategory(state.kaijuCategory);
     state.totalDamageDealt = 0;
     state.battleStartTime = Date.now();
     setupBattleInit();
@@ -598,7 +674,7 @@
     state.gameOver = false;
     clearKaijuLoop();
     state.kaijuIntervalId = setInterval(kaijuAI, 2000);
-    log('Kaiju position detected, battle initiated.');
+    log(`${shortName(state.kaiju)} position detected, battle initiated.`);
   }
 
   function restartBattleSame() {
@@ -660,26 +736,9 @@
     clearKaijuLoop();
     if(state.kaijuPendingAttack && state.kaijuPendingAttack.timer) clearTimeout(state.kaijuPendingAttack.timer);
     if(state.qteTimeoutId) { clearTimeout(state.qteTimeoutId); state.qteTimeoutId = null; }
-    // clear the global-disable timeout if present and reset exemption
     if(state.globalDisableTimeoutId) { clearTimeout(state.globalDisableTimeoutId); state.globalDisableTimeoutId = null; }
     state.globalDisableExcept = null;
     state.globalDisableUntil = 0;
-  }
-
-  function createKaijuFromCategory(cat) {
-    const base = KAIJU_BASE[cat];
-    const name = `${base.namePrefix} Kaiju - Category ${cat}`;
-    const mcopy = [...KAIJU_MOVES];
-    const moves = [];
-    for(let i=0;i<3;i++){
-      const idx = randInt(0,mcopy.length-1);
-      moves.push(mcopy.splice(idx,1)[0]);
-    }
-    state.kaiju = { name, power: base.power, agility: base.agility, armor: base.armor, maxHP: base.maxHP, hp: base.maxHP, moves };
-    kNameEl.innerText = state.kaiju.name;
-    kStatsEl.innerText = `Power:${state.kaiju.power} Agi:${state.kaiju.agility}% Armor:${state.kaiju.armor}%`;
-    kHPbar.style.width = '100%';
-    log(`Spawned Kaiju: ${state.kaiju.name} — HP:${state.kaiju.maxHP}`);
   }
 
   function setupBattleInit() {
@@ -688,6 +747,11 @@
     weatherEl.innerText = state.weather;
     startDistanceEl.innerText = state.distance + ' m';
     distanceEl.innerText = Math.round(state.distance) + ' m';
+    if(state.kaiju) {
+      kNameEl.innerText = state.kaiju.name;
+      kStatsEl.innerText = `Cat:${state.kaiju.category} Pwr:${state.kaiju.power || ''} Agi:${state.kaiju.agility || ''} Arm:${state.kaiju.armor || ''}`;
+      kHPbar.style.width = (state.kaiju.hp / state.kaiju.maxHP * 100) + '%';
+    }
   }
 
   function renderJaegerCard() {
@@ -724,28 +788,55 @@
     if(state.gameOver) return;
     const now = performance.now();
     if(now < (state.globalDisableUntil || 0) || (state.cooldowns['move'] && state.cooldowns['move'] > now)) { cooldownNote.innerText = 'Buttons are on cooldown... wait.'; return; }
-    if(dir==='forward') {
-      const gain = randInt(30,55);
+
+    const loc = (state.battlefield || (state.snapshot && state.snapshot.battlefield) || 'Field');
+    const MOVE_RANGES = {
+      'Field':     { forward: [30,55], backward: [25,55] },
+      'City':      { forward: [20,45], backward: [15,45] },
+      'Sea':       { forward: [25,50], backward: [20,45] },
+      'Underwater':{ forward: [20,40], backward: [15,40] }
+    };
+    const ranges = MOVE_RANGES[loc] || MOVE_RANGES['Field'];
+
+    if(dir === 'forward') {
+      const gain = randInt(ranges.forward[0], ranges.forward[1]);
       state.distance = clamp(state.distance - gain, 0, 1000);
-      log(`Pilot moves forward ${gain} m → distance ${Math.round(state.distance)} m`);
+      log(`${state.jaeger.name} moves forward ${gain} m → distance ${Math.round(state.distance)} m`);
+
+      // --- NEW: forward-charge collision when closing to 5 m or less
+      if(state.distance <= 5 && state.kaiju) {
+        const baseCol = state.jaeger.power * 1.0;
+        const colDmg = computeFinalDamage(baseCol, state.jaeger, state.kaiju, state.distance);
+        if(colDmg > 0) {
+          state.kaiju.hp = Math.max(0, state.kaiju.hp - colDmg);
+          state.totalDamageDealt = (state.totalDamageDealt || 0) + colDmg;
+          log(`${state.jaeger.name} charges into ${shortName(state.kaiju)} and deals ${colDmg} dmg.`);
+          const recoil = Math.round(colDmg * 0.5); // 50% recoil to Jaeger
+          state.jaeger.hp = Math.max(0, state.jaeger.hp - recoil);
+          log(`${state.jaeger.name} takes ${recoil} recoil damage from the impact.`);
+        } else {
+          log(`${state.jaeger.name} charged into ${shortName(state.kaiju)} but dealt no damage.`);
+        }
+      }
+
       setCooldown('move',700);
     } else {
-      const gain = randInt(25,55);
+      const gain = randInt(ranges.backward[0], ranges.backward[1]);
       state.distance = clamp(state.distance + gain, 0, 1000);
-      log(`Pilot moves back ${gain} m → distance ${Math.round(state.distance)} m`);
+      log(`${state.jaeger.name} moves back ${gain} m → distance ${Math.round(state.distance)} m`);
       setCooldown('move',700);
       if(state.kaijuPendingAttack) {
-        cancelKaijuPending('Jaeger moved away — Kaiju attack canceled.');
+        cancelKaijuPending(`${state.jaeger.name} moved away — ${state.kaiju.name}'s attack missed.`);
       }
-	  if(state.distance >= 1000) {
-      log('Jaeger retreated to maximum distance — mission failed.');
-      showResultOverlay('retreat');
-      endGame('retreat','lose');
-      return;
+      if(state.distance >= 1000) {
+        log(`${state.jaeger.name} retreated to maximum distance — mission failed.`);
+        showResultOverlay('retreat');
+        endGame('retreat','lose');
+        return;
       }
     }
     updateDisplays();
-	updateCooldownUI();
+    updateCooldownUI();
   }
 
   function isAnyCooldownActive() {
@@ -758,23 +849,20 @@
     setTimeout(()=>{ delete state.cooldowns[id]; updateCooldownUI(); }, ms+20);
   }
 
-  // --- UPDATED: updateCooldownUI now respects a 'global-disable-except' move id
   function updateCooldownUI() {
-  const now = performance.now();
-  const globalDisabled = now < (state.globalDisableUntil || 0);
+    const now = performance.now();
+    const globalDisabled = now < (state.globalDisableUntil || 0);
 
-  // update each move button individually:
-  // - disabled if global disabled OR if that specific move is on cooldown
-  document.querySelectorAll('#moveBtns button').forEach(b => {
-    const bid = b.id.replace('move_','');
-    const onCd = state.cooldowns[bid] && state.cooldowns[bid] > now;
-    b.disabled = globalDisabled || onCd;
-  });
+    document.querySelectorAll('#moveBtns button').forEach(b => {
+      const bid = b.id.replace('move_','');
+      const onCd = state.cooldowns[bid] && state.cooldowns[bid] > now;
+      const disabledByGlobal = globalDisabled && state.globalDisableExcept !== bid;
+      b.disabled = disabledByGlobal || onCd;
+    });
 
-  // show note if any active cooldown or during global disable
-  const any = globalDisabled || Object.values(state.cooldowns).some(t => t > now);
-  cooldownNote.innerText = any ? 'On cooldown...' : '';
-}
+    const any = globalDisabled || Object.values(state.cooldowns).some(t => t > now);
+    cooldownNote.innerText = any ? 'On cooldown...' : '';
+  }
 
   window.addEventListener('keydown', (e) => {
     if(document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
@@ -785,6 +873,8 @@
     if(key === 'v') triggerAttackHotkey(3);
     if(key === 'a') qteResolve('left');
     if(key === 'd') qteResolve('right');
+	if(key === 'w') playerMove('forward');
+    if(key === 's') playerMove('backward');
     if(key === ' ') { e.preventDefault(); qteResolve('block'); }
   });
 
@@ -794,76 +884,77 @@
     if(move) playerAttack(move.id);
   }
 
-  // --- UPDATED: playerAttack now exempts the pressed move from the short global lock
   function playerAttack(moveId) {
-  if((state.mode !== 'BATTLE' && state.mode !== 'QTE')) return;
-  if(state.gameOver) return;
+    if((state.mode !== 'BATTLE' && state.mode !== 'QTE')) return;
+    if(state.gameOver) return;
 
-  const now = performance.now();
+    const now = performance.now();
+    if(now < (state.globalDisableUntil || 0)) {
+      cooldownNote.innerText = 'Busy.';
+      return;
+    }
 
-  // Respect short global lock first
-  if(now < (state.globalDisableUntil || 0)) {
-    cooldownNote.innerText = 'Busy.';
-    return;
+    const move = state.jaeger.moves.find(m => m.id === moveId);
+    if(!move) return;
+
+    if(state.cooldowns[move.id] && state.cooldowns[move.id] > now) {
+      cooldownNote.innerText = 'Move on cooldown.';
+      return;
+    }
+    if(move.unusableIn && move.unusableIn.includes(state.battlefield)) {
+      log(`Move ${move.name} unusable in ${state.battlefield}.`);
+      setCooldown(move.id, 600);
+      return;
+    }
+    if(move.unusableInWeather && move.unusableInWeather.includes(state.weather)) {
+      log(`${move.name} unusable in ${state.weather} weather.`);
+      setCooldown(move.id, 600);
+      return;
+    }
+    if(move.type === 'ranged' && state.distance >= 100) {
+      log(`${move.name} out of range (out of ranged range).`);
+      setCooldown(move.id, 600);
+      return;
+    }
+    if(move.type === 'melee' && state.distance > 40) {
+      log(`Too far — ${move.name} can't reach.`);
+      setCooldown(move.id, 600);
+      return;
+    }
+
+    if(move.selfHPcostPct) {
+      const cost = Math.ceil(state.jaeger.maxHP * (move.selfHPcostPct || 0));
+      state.jaeger.hp = Math.max(0, state.jaeger.hp - cost);
+      log(`${move.name} consumes ${cost} HP as cost.`);
+    }
+
+    const base = state.jaeger.power * (move.mult || 1);
+    const dmg = computeFinalDamage(base, state.jaeger, state.kaiju, state.distance);
+    if(dmg > 0) {
+      state.kaiju.hp = Math.max(0, Math.round(state.kaiju.hp - dmg));
+      state.totalDamageDealt = (state.totalDamageDealt || 0) + dmg;
+      log(`${state.jaeger.name} used ${move.name} and dealt ${Math.round(dmg)} dmg.`);
+    } else {
+      log(`${state.jaeger.name} used ${move.name}, but ${shortName(state.kaiju)} dodged!`);
+    }
+
+    setCooldown(move.id, move.cd || 1000);
+
+    state.globalDisableUntil = now + 500;
+    state.globalDisableExcept = move.id;
+    if(state.globalDisableTimeoutId) { clearTimeout(state.globalDisableTimeoutId); state.globalDisableTimeoutId = null; }
+    state.globalDisableTimeoutId = setTimeout(()=> {
+      state.globalDisableExcept = null;
+      state.globalDisableTimeoutId = null;
+      updateCooldownUI();
+    }, 500 + 30);
+
+    updateDisplays();
+    updateCooldownUI();
+    checkEndConditions();
   }
 
-  const move = state.jaeger.moves.find(m => m.id === moveId);
-  if(!move) return;
-
-  // check move-specific cooldown
-  if(state.cooldowns[move.id] && state.cooldowns[move.id] > now) {
-    cooldownNote.innerText = 'Move on cooldown.';
-    return;
-  }
-  if(move.unusableIn && move.unusableIn.includes(state.battlefield)) {
-    log(`Move ${move.name} unusable in ${state.battlefield}.`);
-    setCooldown(move.id, 600);
-    return;
-  }
-  if(move.unusableInWeather && move.unusableInWeather.includes(state.weather)) {
-    log(`${move.name} unusable in ${state.weather} weather.`);
-    setCooldown(move.id, 600);
-    return;
-  }
-  if(move.type === 'ranged' && state.distance >= 100) {
-    log(`${move.name} out of range (out of ranged range).`);
-    setCooldown(move.id, 600);
-    return;
-  }
-  if(move.type === 'melee' && state.distance > 40) {
-    log(`Too far — ${move.name} can't reach.`);
-    setCooldown(move.id, 600);
-    return;
-  }
-
-  // optional self HP cost
-  if(move.selfHPcostPct) {
-    const cost = Math.ceil(state.jaeger.maxHP * (move.selfHPcostPct || 0));
-    state.jaeger.hp = Math.max(0, state.jaeger.hp - cost);
-    log(`${move.name} consumes ${cost} HP as cost.`);
-  }
-
-  const base = state.jaeger.power * (move.mult || 1);
-  const dmg = computeFinalDamage(base, state.jaeger, state.kaiju, state.distance);
-  if(dmg > 0) {
-    state.kaiju.hp = Math.max(0, Math.round(state.kaiju.hp - dmg));
-    state.totalDamageDealt = (state.totalDamageDealt || 0) + dmg;
-    log(`Jaeger used ${move.name} and dealt ${Math.round(dmg)} dmg.`);
-  } else {
-    log(`Jaeger used ${move.name}, but Kaiju dodged!`);
-  }
-
-  // set per-move cooldown (the pressed button stays disabled until its own CD expires)
-  setCooldown(move.id, move.cd || 1000);
-
-  // set global short disable (0.5s) that disables *all* buttons for a mini-lock
-  state.globalDisableUntil = now + 500;
-
-  updateDisplays();
-  updateCooldownUI();
-  checkEndConditions();
-}
-
+  // --- REPLACED: use computeFinalDamage implementation from index.html (original working one)
   function computeFinalDamage(baseDamage, attacker, defender, distance) {
     let dodgeMul = 1;
     if(distance >= 31 && distance <= 40) dodgeMul = 4;
@@ -894,7 +985,7 @@
       const baseMove = randInt(25,45);
       const gain = Math.round(baseMove * 1.2);
       state.distance = clamp(state.distance + gain, 0, 1000);
-      log(`Kaiju panics and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
+      log(`${shortName(state.kaiju)} panics and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays(); return;
     }
     const choices = [];
@@ -912,19 +1003,38 @@
     } else if(action === 'approach') {
       const gain = randInt(25,45);
       state.distance = clamp(state.distance - gain, 0, 1000);
-      log(`Kaiju charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
+      log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays();
+
+      // --- NEW: Kaiju forward-charge collision when closing to 5 m or less
+      if(state.distance <= 5 && state.jaeger) {
+        const baseCol = (state.kaiju.power || 0) * 1.0;
+        const colDmg = computeFinalDamage(baseCol, state.kaiju, state.jaeger, state.distance);
+        if(colDmg > 0) {
+          state.jaeger.hp = Math.max(0, state.jaeger.hp - colDmg);
+          log(`${shortName(state.kaiju)} charges into ${state.jaeger.name} and deals ${colDmg} dmg.`);
+          const recoil = Math.round(colDmg * 0.5);
+          state.kaiju.hp = Math.max(0, state.kaiju.hp - recoil);
+          log(`${shortName(state.kaiju)} takes ${recoil} recoil damage from the impact.`);
+        } else {
+          log(`${shortName(state.kaiju)} charged but dealt no damage.`);
+        }
+        updateDisplays();
+        checkEndConditions();
+        return;
+      }
+
     } else {
       const gain = randInt(25,45);
       state.distance = clamp(state.distance + gain, 0, 1000);
-      log(`Kaiju shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
+      log(`${shortName(state.kaiju)} shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays();
     }
   }
 
   function queueKaijuAttack(move) {
     if(move.type === 'ranged' && state.distance >= 100) {
-      log(`Kaiju attempted ${move.name} but distance ${Math.round(state.distance)} m is too far — it moves closer instead.`);
+      log(`${shortName(state.kaiju)} attempted ${move.name} but distance ${Math.round(state.distance)} m is too far — it moves closer instead.`);
       const g = randInt(20,45);
       state.distance = clamp(state.distance - g, 0, 1000);
       updateDisplays(); return;
@@ -935,7 +1045,7 @@
       startAt: Date.now()
     };
     fovEl.classList.add('on');
-    warnText.innerText = `Kaiju preparing ${move.name} — QTE incoming!`;
+    warnText.innerText = `Kaiju preparing ${move.name} — prepare to dodge!`;
     warnBox.classList.add('on');
     qteArea.style.display = 'block';
     state.mode = 'QTE'; modeLabel.innerText = 'QTE';
@@ -952,7 +1062,7 @@
     }
     state.qteTimeoutId = setTimeout(tick,100);
     state.kaijuPendingAttack.timer = setTimeout(()=> resolveKaijuAttack(null), 2000);
-    log(`Kaiju is winding up ${move.name} — QTE (2.0s). Prepare to A/D or Space!`);
+    log(`${shortName(state.kaiju)} is winding up ${move.name} — QTE (2.0s). Prepare to A/D or Space!`);
   }
 
   function cancelKaijuPending(reason) {
@@ -965,7 +1075,7 @@
     warnBox.classList.remove('on');
     qteArea.style.display = 'none';
     state.mode = 'BATTLE'; modeLabel.innerText = 'BATTLE';
-    log(reason || 'Kaiju attack canceled.');
+    log(reason || `{state.kaiju.name} stopped attacking.`);
   }
 
   function resolveKaijuAttack(playerChoice) {
@@ -980,11 +1090,11 @@
     state.mode = 'BATTLE'; modeLabel.innerText = 'BATTLE';
     const d = state.distance;
     if(attack.move.type === 'melee' && d > 40) {
-      log(`Kaiju attempted ${attack.move.name} but target moved out of melee range (${d} m). Attack canceled.`);
+      log(`${shortName(state.kaiju)} attempted ${attack.move.name} but target moved out of range (${d} m). Attack failed.`);
       updateDisplays(); return;
     }
     if(attack.move.type === 'ranged' && d >= 100) {
-      log(`Kaiju attempted ${attack.move.name} but it's out of ranged range (${d} m). Attack canceled.`);
+      log(`${shortName(state.kaiju)} attempted ${attack.move.name} moved out of range. Attack failed.`);
       updateDisplays(); return;
     }
     function passiveHitRoll() {
@@ -1000,64 +1110,59 @@
     const move = attack.move;
     const attackSide = attack.side;
     if(playerChoice === null) {
-      // timed out — passive roll applies
       if(passiveHitRoll()) {
-        // evade
-        log(`Kaiju used ${move.name} (${attackSide}). You evaded the hit!`);
+        log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} evaded the hit!`);
       } else {
-        // hit
-        const damage = computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d);
+        let dodgeMulDbg = 1;
+      if(d >= 31 && d <= 40) dodgeMulDbg = 4;
+      else if(d >= 26 && d <= 30) dodgeMulDbg = 3;
+      else if(d >= 21 && d <= 25) dodgeMulDbg = 2;
+      else dodgeMulDbg = 1;
+      let dodgeChanceDbg = clamp(state.jaeger.agility/100 * dodgeMulDbg, 0, 0.9);
+      if(state.jaeger.hp < state.jaeger.maxHP*0.3) { dodgeChanceDbg *= 1.1; dodgeChanceDbg = Math.min(dodgeChanceDbg, 0.95); }
+      console.log('KAiju attack debug', {d, defenderAgility: state.jaeger.agility, defenderArmor: state.jaeger.armor, dodgeChanceDbg});
+      const damage = computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d);
         if(damage > 0) {
           state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
-          log(`Kaiju used ${move.name} (${attackSide}). You were hit for ${damage} dmg.`);
+          log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} was hit for ${damage} dmg.`);
         } else {
-          log(`Kaiju used ${move.name} (${attackSide}). Kaiju's attack did no damage.`);
+          log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${shortName(state.kaiju)}'s attack did no damage.`);
         }
       }
     } else {
-      // player actively chose dodge/block
       if(attackSide === 'middle') {
         if(playerChoice === 'block') {
           if(passiveHitRoll()) {
             const damage = Math.round(computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d) * 0.75);
             if(damage > 0) {
               state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
-              log(`Kaiju used ${move.name} (${attackSide}). Block reduced damage — you took ${damage} dmg.`);
+              log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). Block reduced damage — ${state.jaeger.name} took ${damage} dmg.`);
             } else {
-              log(`Kaiju used ${move.name} (${attackSide}). Block held — Kaiju missed!`);
+              log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). Block held — ${shortName(state.kaiju)} missed!`);
             }
           } else {
-            log(`Kaiju used ${move.name} (${attackSide}). Block held — Kaiju missed!`);
+            log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). Block held — ${shortName(state.kaiju)} missed!`);
           }
         } else {
-          log(`Kaiju used ${move.name} (${attackSide}). You didn't block — Kaiju missed!`);
+          log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} didn't block — ${shortName(state.kaiju)} missed!`);
         }
       } else {
-        // DIRECTION-SPECIFIC: left/right attacks
-        // Behavior change requested:
-        // - If Kaiju attacks "right", player must dodge "left" OR block to fully avoid
-        // - Dodging the same side as the attack (e.g. dodge right vs attack right) will NOT guarantee avoid —
-        //   it will be resolved via the passive dodge chance (agility); if passive roll fails, player gets hit.
-        // - Mirror for left attack.
         const dirText = playerChoice === 'left' ? 'left' : (playerChoice === 'right' ? 'right' : playerChoice);
 
         if(playerChoice === 'block') {
-          // block now fully avoids left/right attacks as requested
-          log(`Kaiju used ${move.name} (${attackSide}). You blocked the attack!`);
+          log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} blocked the attack!`);
         } else if(playerChoice !== attackSide) {
-          // player dodged the opposite direction -> full evade
-          log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+          log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} dodged ${dirText} — evaded the hit!`);
         } else {
-          // player dodged the same side as attack -> chance to evade based on agility
           if(passiveHitRoll()) {
-            log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+            log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} dodged ${dirText} — evaded the hit!`);
           } else {
             const damage = computeFinalDamage(move.mult * state.kaiju.power, state.kaiju, state.jaeger, d);
             if(damage > 0) {
               state.jaeger.hp = Math.max(0, state.jaeger.hp - damage);
-              log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} but were hit for ${damage} dmg.`);
+              log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} dodged ${dirText} but were hit for ${damage} dmg.`);
             } else {
-              log(`Kaiju used ${move.name} (${attackSide}). You dodged ${dirText} — evaded the hit!`);
+              log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} dodged ${dirText} — evaded the hit!`);
             }
           }
         }
@@ -1078,7 +1183,7 @@
 
   function checkEndConditions() {
     if(state.kaiju && state.kaiju.hp <= 0) {
-      log('Kaiju defeated! You win 🏆');
+      log(`${shortName(state.kaiju)} defeated! You win.`);
       showResultOverlay('win');
       endGame('victory','win');
       return;
@@ -1091,118 +1196,120 @@
   }
 
   function showResultOverlay(type) {
-  // Minimal change: treat 'retreat' as a failure and display Jaeger HP above Kaiju HP
-  resultOverlay.classList.remove('hidden');
-  if(type === 'lose' || type === 'retreat') resultMain.textContent = 'Mission Status: Failure';
-  else resultMain.textContent = 'Mission Status: Successful';
+    resultOverlay.classList.remove('hidden');
+    if(type === 'lose' || type === 'retreat') resultMain.textContent = 'Mission Status: Failure';
+    else resultMain.textContent = 'Mission Status: Successful';
 
-  const totalDamage = state.totalDamageDealt || 0;
-  const now = Date.now();
-  const durationMs = state.battleStartTime ? Math.max(0, now - state.battleStartTime) : 0;
-  const hh = String(Math.floor(durationMs/3600000)).padStart(2,'0');
-  const mm = String(Math.floor((durationMs%3600000)/60000)).padStart(2,'0');
-  const ss = String(Math.floor((durationMs%60000)/1000)).padStart(2,'0');
-  const durationStr = `${hh}:${mm}:${ss}`;
+    const totalDamage = state.totalDamageDealt || 0;
+    const now = Date.now();
+    const durationMs = state.battleStartTime ? Math.max(0, now - state.battleStartTime) : 0;
+    const hh = String(Math.floor(durationMs/3600000)).padStart(2,'0');
+    const mm = String(Math.floor((durationMs%3600000)/60000)).padStart(2,'0');
+    const ss = String(Math.floor((durationMs%60000)/1000)).padStart(2,'0');
+    const durationStr = `${hh}:${mm}:${ss}`;
 
-  let statHtml = `<div class="result-line">Total Damage Dealt: <strong style="color:var(--accent)">${totalDamage}</strong></div>`;
-  statHtml += `<div class="result-line">Battle Duration: <strong style="color:var(--accent)">${durationStr}</strong></div>`;
+    let statHtml = `<div class="result-line">Total Damage Dealt: <strong style="color:var(--accent)">${totalDamage}</strong></div>`;
+    statHtml += `<div class="result-line">Battle Duration: <strong style="color:var(--accent)">${durationStr}</strong></div>`;
 
-  if(type === 'retreat') {
-    // show Jaeger HP first, then Kaiju HP (both visible) — retreat counts as failure
-    const jaegerPct = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(2) : '0.00';
-    const kaijuPct = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
-    statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${jaegerPct}%</strong></div>`;
-    statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${kaijuPct}%</strong></div>`;
-    statHtml += `<div class="result-line" style="color:var(--muted)">Pilot retreated — mission counted as failure.</div>`;
-  } else if(type === 'lose') {
-    const percent = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
-    statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
-  } else {
-    const percent = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(2) : '0.00';
-    statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
+    if(type === 'retreat') {
+      const jaegerPct = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(2) : '0.00';
+      const kaijuPct = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
+      statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${jaegerPct}%</strong></div>`;
+      statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${kaijuPct}%</strong></div>`;
+      statHtml += `<div class="result-line" style="color:var(--muted)">Pilot retreated — mission counted as failure.</div>`;
+    } else if(type === 'lose') {
+      const percent = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(02) : '0.00';
+      statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
+    } else {
+      const percent = state.jaeger ? ((state.jaeger.hp/state.jaeger.maxHP)*100).toFixed(02) : '0.00';
+      statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;
+    }
+
+    resultStats.innerHTML = statHtml;
+
+    retryBtn.onclick = () => {
+      transitionTo(()=> {
+        restartBattleSame();
+      });
+    };
+    redeployBtn.onclick = () => {
+      transitionTo(()=> {
+        redeployToSelection();
+      });
+    };
+    mainMenuBtn.onclick = () => {
+      transitionTo(()=> { location.reload(); });
+    };
   }
-
-  resultStats.innerHTML = statHtml;
-
-  retryBtn.onclick = () => {
-    transitionTo(()=> {
-      restartBattleSame();
-    });
-  };
-  redeployBtn.onclick = () => {
-    transitionTo(()=> {
-      redeployToSelection();
-    });
-  };
-  mainMenuBtn.onclick = () => {
-    transitionTo(()=> { location.reload(); });
-  };
-}
   function hideResultOverlay() { resultOverlay.classList.add('hidden'); }
 
   populateInstructions();
   window.addEventListener('beforeunload', ()=> { clearAllTimers(); });
-
-})();
+  
+function shortName(entityOrName) {
+  const name = typeof entityOrName === 'string' ? entityOrName : (entityOrName && entityOrName.name) || '';
+  return name.split(' - ')[0];
+}
 </script>
 
 <script>
 (function(){
-  // Initiation Sequence timings (ms)
   const seq = [
-    {text: "Initiating Systems", dots:true, duration:3000},
-    {text: "Systems Initiated", dots:false, duration:1000},
-    {text: "Calibrating", dots:true, duration:3000},
-    {text: "Systems Calibrated", dots:false, duration:1000},
+    {text: "Initiating Systems", dots:true, duration:4000},
+    {text: "Systems Initiated", dots:false, duration:2000},
+    {text: "Calibrating", dots:true, duration:4000},
+    {text: "Systems Calibrated", dots:false, duration:2000},
     {text: "Welcome, Ranger", dots:false, duration:0}
   ];
   const initScreen = document.getElementById('initScreen');
   const title = document.getElementById('initTitle');
-  const dots = document.getElementById('initDots');
+  const status = document.getElementById('initStatus');
   const clickHint = document.getElementById('initClickHint');
 
-  function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+  const DOTS = ['.', '..', '...'];
+  let dotsTid = null;
+  function startDotsLoop(targetEl, interval=450) {
+    if(!targetEl) return null;
+    let idx = 0;
+    targetEl.textContent = DOTS[idx];
+    return setInterval(()=> { idx = (idx+1) % DOTS.length; targetEl.textContent = DOTS[idx]; }, interval);
+  }
+  function stopDotsLoop(tid) { if(tid) clearInterval(tid); if(status) status.textContent=''; }
+
+  function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
 
   async function runSequence(){
     for (let step of seq){
       title.textContent = step.text;
-      if (step.dots){
+      if(step.dots) {
+        if(dotsTid) { stopDotsLoop(dotsTid); dotsTid = null; }
+        dotsTid = startDotsLoop(status, 450);
         await sleep(step.duration);
-        await sleep(120); // small pause to let interval clear
+        stopDotsLoop(dotsTid);
+        dotsTid = null;
       } else {
-        // show text for duration if >0
-        if (step.duration > 0) await sleep(step.duration);
+        status.textContent = '';
+        if(step.duration > 0) await sleep(step.duration);
       }
     }
     clickHint.style.display = 'block';
-    // reveal subtext if exists
     initScreen.setAttribute('aria-hidden','false');
   }
 
-  // Audio crossfader using two audio elements
   const audioA = document.getElementById('bgAudioA');
   const audioB = document.getElementById('bgAudioB');
-  let cur = null; // 'A' or 'B'
+  let cur = null;
   let fadeInterval = null;
-
-  function setAudioElementVisible(el, visible){
-    try { el.style.display = visible ? '' : 'none'; } catch(e){}
-  }
-
+  function setAudioVisible(el, v){ try{ el.style.display = v ? '' : 'none'; }catch(e){} }
   function crossfadeTo(src, duration=1500){
-    // if same src already playing, no-op
-    const activeEl = (cur === 'A') ? audioA : (cur === 'B' ? audioB : null);
-    if (activeEl && activeEl.src && activeEl.src.indexOf(src) !== -1 && !activeEl.paused) {
-      return;
-    }
     const incoming = (cur === 'A' || cur === null) ? audioB : audioA;
     const outgoing = (incoming === audioA) ? audioB : audioA;
     try {
       incoming.src = src;
       incoming.loop = true;
       incoming.volume = 0;
-      incoming.play().catch(()=>{ /* play may be blocked until user gesture */ });
-      setAudioElementVisible(incoming, true);
+      incoming.play().catch(()=>{});
+      setAudioVisible(incoming, true);
     } catch(e){}
     const steps = 30;
     const stepTime = Math.max(10, Math.floor(duration/steps));
@@ -1224,19 +1331,13 @@
       }
     }, stepTime);
   }
-
   function playImmediate(src){
-    const incoming = audioA;
-    const other = audioB;
     try{
-      other.pause(); other.currentTime = 0;
-      incoming.src = src;
-      incoming.loop = true;
-      incoming.volume = 1;
-      incoming.play().catch(()=>{ /* may require user gesture */});
+      audioB.pause(); audioB.currentTime = 0;
+      audioA.src = src; audioA.loop = true; audioA.volume = 1;
+      audioA.play().catch(()=>{});
+      setAudioVisible(audioA, true); setAudioVisible(audioB, false);
       cur = 'A';
-      setAudioElementVisible(audioA, true);
-      setAudioElementVisible(audioB, false);
     }catch(e){}
   }
 
@@ -1244,30 +1345,20 @@
 
   initScreen.addEventListener('click', function handler(e){
     if (clickHint.style.display === 'block'){
-      // start background audio pacific.mp3
       playImmediate('pacific.mp3');
-      // fade out overlay
       initScreen.classList.add('hidden');
-      // allow pointer events to pass after transition
       setTimeout(()=>{ initScreen.style.display = 'none'; }, 1000);
-      // remove listener
       initScreen.removeEventListener('click', handler);
     }
   });
 
-  function safeQuery(id){ return document.getElementById(id); }
-  const playBtn = safeQuery('playBtn');
-  const deployBtn = safeQuery('deployBtn');
-
+  const playBtn = document.getElementById('playBtn');
+  const deployBtn = document.getElementById('deployBtn');
   if (playBtn){
-    playBtn.addEventListener('click', ()=>{
-      crossfadeTo('shatterdome.mp3', 1500);
-    });
+    playBtn.addEventListener('click', ()=>{ crossfadeTo('shatterdome.mp3', 1500); });
   }
   if (deployBtn){
-    deployBtn.addEventListener('click', ()=>{
-      crossfadeTo('family.mp3', 1500);
-    });
+    deployBtn.addEventListener('click', ()=>{ crossfadeTo('family.mp3', 1500); });
   }
 
 })();

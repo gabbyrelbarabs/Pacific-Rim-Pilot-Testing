@@ -306,9 +306,9 @@
       power: 8, agility: 7, armor: 6, maxHP: 160,
       height: '79 m', weight: '1,980 t',
       moves: [
-        {id:'hammer', name:'Hammer Strike', type:'melee', mult:1.2, cd:1700, desc:'Double-arm down slam.'},
-        {id:'jet', name:'Jet Punch', type:'melee', mult:1.0, cd:1500, desc:'Jet-propulsed punch.'},
-        {id:'plasma', name:'Plasma Cannon', type:'ranged', mult:1.5, cd:2000, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
+        {id:'hammer', name:'Hammer Strike', type:'melee', mult:1.5, cd:1700, desc:'Double-arm down slam.'},
+        {id:'jet', name:'Jet Punch', type:'melee', mult:1.2, cd:1500, desc:'Jet-propulsed punch.'},
+        {id:'plasma', name:'Plasma Cannon', type:'ranged', mult:2.0, cd:2100, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
         {id:'reactor', name:'Reactor Burnout', type:'ranged', mult:2.7, cd:3500, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
       ]
     },
@@ -328,24 +328,24 @@
       power: 10, agility: 10, armor: 9, maxHP: 120,
       height: '76 m', weight: '1,750 t',
       moves: [
-        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:2900, desc:'Anti-Kaiju Missiles.'},
-        {id:'twin', name:'Twin Slasher', type:'melee', mult:1.0, cd:1450, desc:'Sting blades.'},
-        {id:'rapid', name:'Rapid Combo', type:'melee', mult:1.1, cd:1350, unusableIn:['Underwater'], desc:'High velocity punches.'},
-        {id:'serrate', name:'Serration', type:'melee', mult:1.3, cd:1000, desc:'Serrated blades.'}
+        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:3000, desc:'Anti-Kaiju Missiles.'},
+        {id:'twin', name:'Twin Slasher', type:'melee', mult:1.0, cd:950, desc:'Sting blades.'},
+        {id:'rapid', name:'Power Combo', type:'melee', mult:1.1, cd:850, unusableIn:['Underwater'], desc:'High velocity punches.'},
+        {id:'serrate', name:'Serration', type:'melee', mult:1.3, cd:1050, desc:'Serrated blades.'}
       ]
     }, 'Crimson Typhoon': {
 	  mark: 'Mark-IV',
       power: 8, agility: 9, armor: 6, maxHP: 150,
       height: '76 m', weight: '1,900 t',
       moves: [
-        {id:'z_dual_strike', name:'Dual Strike', type:'melee', mult:1.2, cd:1400, desc:'Twin-drill melee strike.'},
+        {id:'z_dual_strike', name:'Dual Strike', type:'melee', mult:1.2, cd:1000, desc:'Twin-drill melee strike.'},
         {id:'x_overthrow', name:'Overthrow', type:'melee', mult:2.0, cd:2500, unusableIn:['Underwater'], desc:'Spinning overthrow (weaker underwater).'},
-        {id:'c_thundercloud', name:'Thundercloud', type:'melee', mult:2.2, cd:2800, unusableIn:['City'], desc:'Heavy clouded impact.'},
-        {id:'v_snipe', name:'Snipe', type:'ranged', mult:3.0, cd:4500, unusableIn:['City'], desc:'Long-range precision shot.'}
+        {id:'c_thundercloud', name:'Thundercloud Formation', type:'melee', mult:2.2, cd:2800, unusableIn:['City'], desc:'Heavy clouded impact.'},
+        {id:'v_snipe', name:'Plasma Snipe', type:'ranged', mult:3.0, cd:4500, unusableIn:['City'], desc:'Long-range precision shot.'}
       ]
     },
     'Diablo Intercept': {
-      power: 8, agility: 7, armor: 8, maxHP: 140,
+      power: 8, agility: 7, armor: 8, maxHP: 150,
       mark: 'Mark-II',
       height: '82 m', weight: '2,100 t',
       moves: [
@@ -356,7 +356,7 @@
       ]
     },
     'Coyote Tango': {
-      power: 7, agility: 5, armor: 4, maxHP: 150,
+      power: 7, agility: 5, armor: 4, maxHP: 140,
       mark: 'Mark-I',
       height: '74 m', weight: '1,600 t',
       moves: [
@@ -600,7 +600,7 @@
   };
 
   deployBtn.onclick = () => {
-    if(!state.jaeger) { alert('Choose a Jaeger first.'); return; }
+    if(!state.jaeger) { alert('Select a Jaeger for deployment.'); return; }
     log(`Jaeger selected for deployment: ${state.jaeger.name}`);
     state.snapshot = {
       jaegerKey: state.jaeger.key,
@@ -638,7 +638,7 @@
       id: 'kaiju-' + Math.floor(Math.random() * 1000000),
       name: name,
       category: cat,
-      power: base.power || 0,                // <--- FIX: include Kaiju power (was missing)
+      power: base.power || 0,
       maxHP: base.maxHP || base.hp || 100,
       hp: base.maxHP || base.hp || 100,
       armor: base.armor || 0,
@@ -664,6 +664,13 @@
     };
     state.distance = state.snapshot.startDistance;
     state.kaiju = createKaijuFromCategory(state.kaijuCategory);
+	
+	state.kaijuInitialCharge = true;
+    state.kaijuPanic = false;
+    state.kaijuPanicSuppressed = false;
+    state.kaijuRushMode = false;
+    state.kaijuRushAttacksRemaining = 0;
+	
     state.totalDamageDealt = 0;
     state.battleStartTime = Date.now();
     setupBattleInit();
@@ -803,7 +810,6 @@
       state.distance = clamp(state.distance - gain, 0, 1000);
       log(`${state.jaeger.name} moves forward ${gain} m → distance ${Math.round(state.distance)} m`);
 
-      // --- NEW: forward-charge collision when closing to 5 m or less
       if(state.distance <= 5 && state.kaiju) {
         const baseCol = state.jaeger.power * 1.0;
         const colDmg = computeFinalDamage(baseCol, state.jaeger, state.kaiju, state.distance);
@@ -811,7 +817,7 @@
           state.kaiju.hp = Math.max(0, state.kaiju.hp - colDmg);
           state.totalDamageDealt = (state.totalDamageDealt || 0) + colDmg;
           log(`${state.jaeger.name} charges into ${shortName(state.kaiju)} and deals ${colDmg} dmg.`);
-          const recoil = Math.round(colDmg * 0.5); // 50% recoil to Jaeger
+          const recoil = Math.round(colDmg * 0.5);
           state.jaeger.hp = Math.max(0, state.jaeger.hp - recoil);
           log(`${state.jaeger.name} takes ${recoil} recoil damage from the impact.`);
         } else {
@@ -829,7 +835,7 @@
         cancelKaijuPending(`${state.jaeger.name} moved away — ${state.kaiju.name}'s attack missed.`);
       }
       if(state.distance >= 1000) {
-        log(`${state.jaeger.name} retreated to maximum distance — mission failed.`);
+        log(`${state.jaeger.name} has fled and retreated — mission failed.`);
         showResultOverlay('retreat');
         endGame('retreat','lose');
         return;
@@ -932,6 +938,19 @@
     const dmg = computeFinalDamage(base, state.jaeger, state.kaiju, state.distance);
     if(dmg > 0) {
       state.kaiju.hp = Math.max(0, Math.round(state.kaiju.hp - dmg));
+      // If the Kaiju was panicking and the player dealt damage, suppress panic and force a counter-rush/attack sequence.
+      if(state.kaiju && state.kaijuPanic && dmg > 0) {
+        const cat = state.kaiju.category;
+        // Category V and VI do not panic or get interrupted by panic logic.
+        if(!(cat === 'V' || cat === 'VI')) {
+          state.kaijuPanic = false;
+          state.kaijuPanicSuppressed = true;
+          state.kaijuRushMode = true;
+          state.kaijuRushAttacksRemaining = randInt(1,3);
+          log(`${shortName(state.kaiju)}'s panic is broken by the assault and it rushes back!`);
+        }
+      }
+
       state.totalDamageDealt = (state.totalDamageDealt || 0) + dmg;
       log(`${state.jaeger.name} used ${move.name} and dealt ${Math.round(dmg)} dmg.`);
     } else {
@@ -954,7 +973,6 @@
     checkEndConditions();
   }
 
-  // --- REPLACED: use computeFinalDamage implementation from index.html (original working one)
   function computeFinalDamage(baseDamage, attacker, defender, distance) {
     let dodgeMul = 1;
     if(distance >= 31 && distance <= 40) dodgeMul = 4;
@@ -980,33 +998,107 @@
   function kaijuAI() {
     if(state.gameOver || !state.kaiju) return;
     if(state.kaijuPendingAttack) return;
-    const lowHP = state.kaiju.hp < state.kaiju.maxHP*0.3;
-    if(lowHP && Math.random() < 0.7) {
-      const baseMove = randInt(25,45);
-      const gain = Math.round(baseMove * 1.2);
-      state.distance = clamp(state.distance + gain, 0, 1000);
-      log(`${shortName(state.kaiju)} panics and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
-      updateDisplays(); return;
+
+    if(state.kaijuInitialCharge) {
+      if(state.distance > 60) {
+        const gain = randInt(25,45);
+        state.distance = clamp(state.distance - gain, 0, 1000);
+        log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
+        updateDisplays();
+
+        if(state.distance <= 5 && state.jaeger) {
+          const baseCol = (state.kaiju.power || 0) * 1.0;
+          const colDmg = computeFinalDamage(baseCol, state.kaiju, state.jaeger, state.distance);
+          if(colDmg > 0) {
+            state.jaeger.hp = Math.max(0, state.jaeger.hp - colDmg);
+            log(`${shortName(state.kaiju)} charges into ${state.jaeger.name} and deals ${colDmg} dmg.`);
+            const recoil = Math.round(colDmg * 0.5);
+            state.kaiju.hp = Math.max(0, state.kaiju.hp - recoil);
+            state.totalDamageTaken = (state.totalDamageTaken || 0) + colDmg;
+          } else {
+            log(`${shortName(state.kaiju)} charged but dealt no damage.`);
+          }
+          updateDisplays();
+          checkEndConditions();
+          return;
+        }
+
+        if(state.distance <= 60) {
+          state.kaijuInitialCharge = false;
+          log(`${shortName(state.kaiju)} slows to reconsider tactics.`);
+        }
+        return;
+      } else {
+        state.kaijuInitialCharge = false;
+      }
     }
+
+    const cat = state.kaiju.category;
+    const lowHP = state.kaiju.hp < state.kaiju.maxHP * 0.3;
+
+    if(state.kaijuRushMode) {
+      if(state.distance > 20) {
+        const gain = randInt(25,45);
+        state.distance = clamp(state.distance - gain, 0, 1000);
+        log(`${shortName(state.kaiju)} rushes forward ${gain} m → distance ${Math.round(state.distance)} m`);
+        updateDisplays();
+        return;
+      }
+      if(state.kaijuRushAttacksRemaining && state.kaijuRushAttacksRemaining > 0) {
+        state.kaijuRushAttacksRemaining--;
+        queueKaijuAttack();
+        if(state.kaijuRushAttacksRemaining <= 0) {
+          state.kaijuRushMode = false;
+          if(lowHP && !(cat === 'V' || cat === 'VI')) {
+            state.kaijuPanic = true;
+            state.kaijuPanicSuppressed = false;
+          }
+          log(`${shortName(state.kaiju)} finishes its counterattack and attempts to flee again.`);
+        }
+        return;
+      } else {
+        state.kaijuRushMode = false;
+      }
+    }
+
+    if(!state.kaijuPanicSuppressed && lowHP && !(cat === 'V' || cat === 'VI')) {
+      if(state.kaijuPanic || Math.random() < 0.7) {
+        const baseMove = randInt(25,45);
+        const gain = Math.round(baseMove * 1.2);
+        state.distance = clamp(state.distance + gain, 0, 1000);
+        state.kaijuPanic = true;
+        log(`${shortName(state.kaiju)} panics and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
+        updateDisplays();
+        return;
+      }
+    }
+
+    if(state.kaijuPanic && lowHP && !(cat === 'V' || cat === 'VI')) {
+      if(Math.random() < 0.5) {
+        const gain = randInt(15,35);
+        state.distance = clamp(state.distance + gain, 0, 1000);
+        log(`${shortName(state.kaiju)} continues to panic and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
+        updateDisplays();
+        return;
+      } else {
+        state.kaijuPanic = false;
+      }
+    }
+
     const choices = [];
     if(state.distance <= 60) choices.push('attack');
     choices.push('approach','retreat');
-    const action = choices[randInt(0,choices.length-1)];
+    const action = choices[randInt(0, choices.length-1)];
+
     if(action === 'attack') {
-      const melee = state.kaiju.moves.filter(m=>m.type==='melee');
-      const ranged = state.kaiju.moves.filter(m=>m.type==='ranged');
-      let move;
-      if(state.distance <= 40 && melee.length) move = melee[randInt(0,melee.length-1)];
-      else if(ranged.length && Math.random() < 0.6) move = ranged[randInt(0,ranged.length-1)];
-      else move = state.kaiju.moves[randInt(0,state.kaiju.moves.length-1)];
-      queueKaijuAttack(move);
+      queueKaijuAttack();
+      return;
     } else if(action === 'approach') {
       const gain = randInt(25,45);
       state.distance = clamp(state.distance - gain, 0, 1000);
       log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays();
 
-      // --- NEW: Kaiju forward-charge collision when closing to 5 m or less
       if(state.distance <= 5 && state.jaeger) {
         const baseCol = (state.kaiju.power || 0) * 1.0;
         const colDmg = computeFinalDamage(baseCol, state.kaiju, state.jaeger, state.distance);
@@ -1015,7 +1107,7 @@
           log(`${shortName(state.kaiju)} charges into ${state.jaeger.name} and deals ${colDmg} dmg.`);
           const recoil = Math.round(colDmg * 0.5);
           state.kaiju.hp = Math.max(0, state.kaiju.hp - recoil);
-          log(`${shortName(state.kaiju)} takes ${recoil} recoil damage from the impact.`);
+          state.totalDamageTaken = (state.totalDamageTaken || 0) + colDmg;
         } else {
           log(`${shortName(state.kaiju)} charged but dealt no damage.`);
         }
@@ -1033,6 +1125,13 @@
   }
 
   function queueKaijuAttack(move) {
+	if (!move) {
+      const moves = (state.kaiju && state.kaiju.moves && state.kaiju.moves.length)
+        ? state.kaiju.moves
+        : (typeof KAIJU_MOVES !== 'undefined' ? KAIJU_MOVES : []);
+      if(moves.length === 0) return;
+      move = moves[Math.floor(Math.random() * moves.length)];
+    }
     if(move.type === 'ranged' && state.distance >= 100) {
       log(`${shortName(state.kaiju)} attempted ${move.name} but distance ${Math.round(state.distance)} m is too far — it moves closer instead.`);
       const g = randInt(20,45);

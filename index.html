@@ -341,7 +341,7 @@
       power: 10, agility: 10, armor: 9, maxHP: 120,
       height: '76 m', weight: '1,750 t',
       moves: [
-        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:3000, desc:'Anti-Kaiju Missiles.'},
+        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:3500, desc:'Anti-Kaiju Missiles.'},
         {id:'twin', name:'Twin Slasher', type:'melee', mult:1.0, cd:950, desc:'Assault Mount 3.25 Sting Blades.'},
         {id:'rapid', name:'Power Combo', type:'melee', mult:1.1, cd:850, unusableIn:['Underwater'], desc:'High velocity punches.'},
         {id:'serrate', name:'Serration', type:'melee', mult:1.3, cd:1050, desc:'Serrated blades attachment to Sting Blades.'}
@@ -425,9 +425,9 @@
   const KAIJU_MOVES = [
     {id:'bite', name:'Bite', type:'melee', mult:1.0, desc:'Close-range bite.'},
     {id:'tail', name:'Tail Swipe', type:'melee', mult:1.1, desc:'Sweeping tail.'},
-    {id:'stomp', name:'Stomp', type:'melee', mult:1.2, desc:'Heavy stomp.'},
+    {id:'stomp', name:'Stomp', type:'melee', mult:1.0, desc:'Heavy stomp.'},
     {id:'beam', name:'Bio Beam', type:'ranged', mult:1.3, desc:'Ranged bio-beam.'},
-    {id:'spit', name:'Acid Spit', type:'ranged', mult:1.0, desc:'Irritating corrosive spit.'}
+    {id:'spit', name:'Acid Spit', type:'ranged', mult:1.2, desc:'Irritating corrosive spit.'}
   ];
 
   const state = {
@@ -486,7 +486,8 @@ function updateJaegerPreview(name) {
     'Diablo Intercept': 'diablo.png',
     'Striker Eureka': 'striker.png',
     'Crimson Typhoon': 'crimson.png',
-    'Coyote Tango': 'coyote.png'
+    'Coyote Tango': 'coyote.png',
+	'Warrior Exodus': 'warrior.png'
   };
 
   if (!jaegerPreviewImg || !jaegerPreviewEmpty) return;
@@ -949,14 +950,6 @@ if (state.distance > 100) {
     state.kaijuPassiveApproach = false;
     state.kaijuInitialCharge = true;
     try { log(`${shortName(state.kaiju)} is aggravated!`); } catch(e){}
-    var gain = randInt(25,45);
-    state.distance = clamp(state.distance - gain, 0, 1000);
-    try { log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`); } catch(e){}
-    try { if (typeof updateDisplays === 'function') updateDisplays(); } catch(e){}
-    if (state.distance <= 60) {
-      state.kaijuInitialCharge = false;
-      try { log(`${shortName(state.kaiju)} slows to reconsider tactics.`); } catch(e){}
-    }
     try { if (typeof kaijuAI === 'function') kaijuAI(); } catch(e){}
     return;
   }

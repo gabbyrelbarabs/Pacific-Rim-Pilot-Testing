@@ -138,6 +138,7 @@
 
 <audio id="bgAudioA" loop preload="auto"></audio>
 <audio id="bgAudioB" loop preload="auto" style="display:none"></audio>
+<audio id="sfxAudio" preload="auto"></audio>
 
 <div class="container">
   <div id="menuScreen" class="panel title-screen">
@@ -154,7 +155,7 @@
       <div style="height:18px"></div>
       <div id="instructionsPanel" class="hidden panel" style="margin-top:12px;">
         <h2>Instructions & Jaeger Information</h2>
-        <div class="muted-block"><b>Hotkeys</b>: <br>Movement: <span class="kbd">W</span> Forward · <span class="kbd">S</span> Backwards<br> Offense: <span class="kbd">Z</span> (1) · <span class="kbd">X</span> (2) · <span class="kbd">C</span> (3) · <span class="kbd">V</span> (4)<br> Defense: <span class="kbd">A</span> (Dodge left) · <span class="kbd">D</span> (Dodge right) · <span class="kbd">Space</span> (Block)</div>
+        <div class="muted-block"><b>Hotkeys</b>: <br>Movement/Status: <span class="kbd">W</span> Forward · <span class="kbd">S</span> Backwards · <span class="kbd">F</span> Taunt<br>Offense: <span class="kbd">Z</span> (1) · <span class="kbd">X</span> (2) · <span class="kbd">C</span> (3) · <span class="kbd">V</span> (4)<br> Defense: <span class="kbd">A</span> (Dodge left) · <span class="kbd">D</span> (Dodge right) · <span class="kbd">Space</span> (Block)</div>
 		<br>
         <div id="instructionsJaegers"></div>
         <div style="height:8px"></div>
@@ -176,6 +177,15 @@
           <div>Weather Status: <span id="deployWeather" class="big">—</span></div>
         </div>
       </div>
+	  <div id="jaegerPreview" class="jaeger-preview panel" style="width:340px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px;">
+		<div id="jaegerPreviewHeader" style="align-self:centert font-weight:600; margin-bottom:20px;"><b>Jaeger Blueprints:</b></div>
+		<div id="jaegerPreviewBody" style="width:100%; display:flex; align-items:center; justify-content:center; min-height:120px;">
+		  <img id="jaegerPreviewImg" src="" alt="Jaeger preview" style="max-width:100%; max-height:500px; display:none; border-radius:8px;" />
+		  <div id="jaegerPreviewEmpty" style="display:none; padding:20px; border:1px dashed rgba(255,255,255,0.08); border-radius:6px; text-align:center;">
+			Select a Jaeger to view blueprints
+		  </div>
+		</div>
+	  </div>
       <div style="width:340px;">
         <h2>Jaeger Deployment</h2>
         <div class="muted-block">Choose a Jaeger — Deploy only enabled after selection</div>
@@ -248,9 +258,10 @@
             <div class="big center" id="distance">—</div>
             <div style="margin-top:6px;" class="stat">Actions</div>
             <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;">
-              <button id="moveFwd" class="small">Move Forward</button>
-              <button id="moveBack" class="small">Move Back</button>
-            </div>
+			  <button id="moveFwd" class="small">Move Forward</button>
+			  <button id="moveBack" class="small">Move Back</button>
+			  <button id="tauntBtn" class="small">Taunt</button>
+			</div>
             <div style="margin-top:8px;" id="cooldownNote" class="disabled-note"></div>
             <div style="margin-top:6px;" class="controls-hint">Dodge: A (Left) · D (Right) · Space (Block)</div>
           </div>
@@ -448,6 +459,59 @@
   const deployTimeOfDay = document.getElementById('deployTimeOfDay');
   const jaegerSelection = document.getElementById('jaegerSelection');
   const deployBtn = document.getElementById('deployBtn');
+  
+  const jaegerPreviewImg = document.getElementById('jaegerPreviewImg');
+const jaegerPreviewEmpty = document.getElementById('jaegerPreviewEmpty');
+
+if (jaegerPreviewImg) {
+  jaegerPreviewImg.onload = function() {
+    if (jaegerPreviewEmpty) jaegerPreviewEmpty.style.display = 'none';
+    jaegerPreviewImg.style.display = 'block';
+  };
+
+  jaegerPreviewImg.onerror = function() {
+    jaegerPreviewImg.style.display = 'none';
+    jaegerPreviewImg.src = '';
+    if (jaegerPreviewEmpty) {
+      jaegerPreviewEmpty.style.display = 'block';
+      jaegerPreviewEmpty.textContent = 'No blueprints of this Jaeger are public';
+    }
+  };
+}
+
+function updateJaegerPreview(name) {
+  const map = {
+    'Gipsy Danger': 'gipsy.png',
+    'Cherno Alpha': 'cherno.png',
+    'Diablo Intercept': 'diablo.png',
+    'Striker Eureka': 'striker.png',
+    'Crimson Typhoon': 'crimson.png',
+    'Coyote Tango': 'coyote.png'
+  };
+
+  if (!jaegerPreviewImg || !jaegerPreviewEmpty) return;
+
+  if (!name) {
+    jaegerPreviewImg.style.display = 'none';
+    jaegerPreviewImg.src = '';
+    jaegerPreviewEmpty.style.display = 'block';
+    jaegerPreviewEmpty.textContent = 'Select a Jaeger to view blueprints';
+    return;
+  }
+
+  const filename = map[name];
+  if (!filename) {
+    jaegerPreviewImg.style.display = 'none';
+    jaegerPreviewImg.src = '';
+    jaegerPreviewEmpty.style.display = 'block';
+    jaegerPreviewEmpty.textContent = 'No blueprints of this Jaeger are public';
+    return;
+  }
+
+  jaegerPreviewEmpty.style.display = 'none';
+  jaegerPreviewImg.style.display = 'none';
+  jaegerPreviewImg.src = filename;
+}
 
   const battleScreen = document.getElementById('battleScreen');
   const backToDeploy = document.getElementById('backToDeploy');
@@ -473,6 +537,8 @@
   const qteTimerEl = document.getElementById('qteTimer');
   const warnBox = document.getElementById('warnBox');
   const warnText = document.getElementById('warnText');
+  const sfxAudio = document.getElementById('sfxAudio');
+  const tauntBtn = document.getElementById('tauntBtn');
 
   const dodgeLeftBtn = document.getElementById('dodgeLeft');
   const dodgeRightBtn = document.getElementById('dodgeRight');
@@ -559,6 +625,7 @@
     deployWeather.innerText = state.weather;
     deployTimeOfDay.innerText = state.timeOfDay;
     jaegerSelection.innerHTML = '';
+	updateJaegerPreview(null);
     Object.keys(JAEGERS).forEach(name=>{
       const tpl = JAEGERS[name];
       const item = document.createElement('div');
@@ -585,6 +652,7 @@
           moves: JSON.parse(JSON.stringify(tpl.moves))
         };
         deployBtn.disabled = false;
+		updateJaegerPreview(name);
       };
       jaegerSelection.appendChild(item);
     });
@@ -610,8 +678,9 @@
       battlefield: state.battlefield,
       weather: state.weather,
       timeOfDay: state.timeOfDay,
-      startDistance: randInt(100,150)
+      startDistance: randInt(85,200)
     };
+	updateJaegerPreview(state.snapshot.jaegerKey);
     transitionTo(()=> {
       deployScreen.classList.add('hidden');
       battleScreen.classList.remove('hidden');
@@ -669,9 +738,27 @@
 	
 	state.kaijuInitialCharge = true;
     state.kaijuPanic = false;
-    state.kaijuPanicSuppressed = false;
-    state.kaijuRushMode = false;
-    state.kaijuRushAttacksRemaining = 0;
+state.kaijuPanicSuppressed = false;
+state.kaijuRushMode = false;
+state.kaijuRushAttacksRemaining = 0;
+state.kaijuPassiveApproach = false;
+
+if (state.distance > 100) {
+  state.kaijuInitialCharge = false;
+  state.kaijuPassiveApproach = true;
+  log(`${shortName(state.kaiju)} detected.`);
+} else {
+  state.kaijuInitialCharge = true;
+  state.kaijuPassiveApproach = false;
+  try {
+    sfxAudio.pause();
+    sfxAudio.currentTime = 0;
+    sfxAudio.src = 'foghorn.mp3';
+    sfxAudio.loop = false;
+    sfxAudio.play().catch(()=>{});
+  } catch(e){}
+  log(`Foghorn sounded.`);
+}
 	
     state.totalDamageDealt = 0;
     state.battleStartTime = Date.now();
@@ -683,7 +770,6 @@
     state.gameOver = false;
     clearKaijuLoop();
     state.kaijuIntervalId = setInterval(kaijuAI, 2000);
-    log(`${shortName(state.kaiju)} position detected, battle initiated.`);
   }
 
   function restartBattleSame() {
@@ -724,6 +810,7 @@
         moves: JSON.parse(JSON.stringify(tpl.moves))
       };
       deployBtn.disabled = false;
+	  updateJaegerPreview(state.jaeger.name || state.snapshot.jaegerKey);
       log(`Jaeger selected for deployment: ${state.jaeger.name}`);
       hideResultOverlay();
     });
@@ -846,6 +933,48 @@
     updateDisplays();
     updateCooldownUI();
   }
+  
+  function handleTaunt() {
+  if (!state || state.gameOver) return;
+  var now = performance.now();
+  if (state.cooldowns && state.cooldowns['taunt'] && state.cooldowns['taunt'] > now) {
+    if (typeof cooldownNote !== 'undefined') cooldownNote.innerText = 'Taunt on cooldown.';
+    return;
+  }
+  try { if (sfxAudio) { sfxAudio.pause(); sfxAudio.currentTime = 0; sfxAudio.src = 'foghorn.mp3'; sfxAudio.loop = false; sfxAudio.play().catch(()=>{}); } } catch(e){}
+  try { if (typeof setCooldown === 'function') setCooldown('taunt', 30000); } catch(e){}
+  try { if (tauntBtn) { tauntBtn.disabled = true; setTimeout(function(){ tauntBtn.disabled = false; if (typeof updateCooldownUI === 'function') updateCooldownUI(); },30000); } } catch(e){}
+  log(`${shortName(state.kaiju)} has detected your taunt!`);
+  if (state.kaiju && state.kaijuPassiveApproach && state.distance > 100) {
+    state.kaijuPassiveApproach = false;
+    state.kaijuInitialCharge = true;
+    try { log(`${shortName(state.kaiju)} is aggravated!`); } catch(e){}
+    var gain = randInt(25,45);
+    state.distance = clamp(state.distance - gain, 0, 1000);
+    try { log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`); } catch(e){}
+    try { if (typeof updateDisplays === 'function') updateDisplays(); } catch(e){}
+    if (state.distance <= 60) {
+      state.kaijuInitialCharge = false;
+      try { log(`${shortName(state.kaiju)} slows to reconsider tactics.`); } catch(e){}
+    }
+    try { if (typeof kaijuAI === 'function') kaijuAI(); } catch(e){}
+    return;
+  }
+  if (state.kaiju && state.kaijuPanic) {
+    var cat = state.kaiju.category;
+    if (!(cat === 'V' || cat === 'VI')) {
+      state.kaijuPanic = false;
+      state.kaijuPanicSuppressed = true;
+      state.kaijuRushMode = true;
+      state.kaijuRushAttacksRemaining = randInt(1,3);
+      try { log(`${shortName(state.kaiju)} is aggravated!`); } catch(e){}
+      try { if (typeof kaijuAI === 'function') kaijuAI(); } catch(e){}
+    } else {
+      try { log(`${shortName(state.kaiju)} is unfazed by your taunt.`); } catch(e){}
+    }
+  }
+}
+if (typeof tauntBtn !== 'undefined' && tauntBtn) tauntBtn.onclick = handleTaunt;
 
   function isAnyCooldownActive() {
     const now = performance.now();
@@ -875,14 +1004,15 @@
   window.addEventListener('keydown', (e) => {
     if(document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
     const key = e.key.toLowerCase();
-    if(key === 'z') triggerAttackHotkey(0);
-    if(key === 'x') triggerAttackHotkey(1);
-    if(key === 'c') triggerAttackHotkey(2);
-    if(key === 'v') triggerAttackHotkey(3);
-    if(key === 'a') qteResolve('left');
-    if(key === 'd') qteResolve('right');
-	if(key === 'w') playerMove('forward');
-    if(key === 's') playerMove('backward');
+    if(key === 'z' || key === 'Z') triggerAttackHotkey(0);
+    if(key === 'x' || key === 'X') triggerAttackHotkey(1);
+    if(key === 'c' || key === 'C') triggerAttackHotkey(2);
+    if(key === 'v' || key === 'V') triggerAttackHotkey(3);
+    if(key === 'a' || key === 'A') qteResolve('left');
+    if(key === 'd' || key === 'D') qteResolve('right');
+	if(key === 'w' || key === 'W') playerMove('forward');
+    if(key === 's' || key === 'S') playerMove('backward');
+	if(key === 'f' || key === 'F') handleTaunt();
     if(key === ' ') { e.preventDefault(); qteResolve('block'); }
   });
 
@@ -920,7 +1050,7 @@
       return;
     }
     if(move.type === 'ranged' && state.distance >= 100) {
-      log(`${move.name} out of range (out of ranged range).`);
+      log(`${move.name} out of range (out of range).`);
       setCooldown(move.id, 600);
       return;
     }
@@ -940,10 +1070,8 @@
     const dmg = computeFinalDamage(base, state.jaeger, state.kaiju, state.distance);
     if(dmg > 0) {
       state.kaiju.hp = Math.max(0, Math.round(state.kaiju.hp - dmg));
-      // If the Kaiju was panicking and the player dealt damage, suppress panic and force a counter-rush/attack sequence.
       if(state.kaiju && state.kaijuPanic && dmg > 0) {
         const cat = state.kaiju.category;
-        // Category V and VI do not panic or get interrupted by panic logic.
         if(!(cat === 'V' || cat === 'VI')) {
           state.kaijuPanic = false;
           state.kaijuPanicSuppressed = true;
@@ -1000,6 +1128,34 @@
   function kaijuAI() {
     if(state.gameOver || !state.kaiju) return;
     if(state.kaijuPendingAttack) return;
+	
+	if (state.kaijuPassiveApproach) {
+  if (Math.random() < 0.5) {
+    const gain = randInt(10, 30);
+    state.distance = clamp(state.distance - gain, 0, 1000);
+    log(`${shortName(state.kaiju)} prowls forward ${gain} m → distance ${Math.round(state.distance)} m`);
+  } else {
+    const gain = randInt(10, 30);
+    state.distance = clamp(state.distance + gain, 0, 1000);
+    log(`${shortName(state.kaiju)} shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
+  }
+  if (typeof updateDisplays === 'function') updateDisplays();
+
+  if (state.distance <= 100) {
+    state.kaijuPassiveApproach = false;
+    state.kaijuInitialCharge = true;
+    log(`${shortName(state.kaiju)} has detected your position, aggravation detected, battle initiated.`);
+    const gain = randInt(25,45);
+    state.distance = clamp(state.distance - gain, 0, 1000);
+    log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
+    if (typeof updateDisplays === 'function') updateDisplays();
+    if (state.distance <= 60) {
+      state.kaijuInitialCharge = false;
+      log(`${shortName(state.kaiju)} slows to reconsider tactics.`);
+    }
+  }
+  return;
+}
 
     if(state.kaijuInitialCharge) {
       if(state.distance > 60) {

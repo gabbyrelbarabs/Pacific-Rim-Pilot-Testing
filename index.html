@@ -321,10 +321,10 @@
       power: 8, agility: 7, armor: 6, maxHP: 160,
       height: '79 m', weight: '1,980 t',
       moves: [
-        {id:'hammer', name:'Hammer Strike', type:'melee', mult:1.8, cd:2700, desc:'Double-arm down slam.'},
-        {id:'jet', name:'Jet Punch', type:'melee', mult:1.5, cd:2500, desc:'Jet-propulsed punch.'},
-        {id:'plasma', name:'Plasma Cannon', type:'ranged', mult:2.6, cd:3100, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
-        {id:'reactor', name:'Reactor Burnout', type:'ranged', mult:3.0, cd:6000, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
+        {id:'z_hammer_striker', name:'Hammer Strike', type:'melee', mult:1.8, cd:2700, desc:'Double-arm down slam.'},
+        {id:'x_jet_punch', name:'Jet Punch', type:'melee', mult:1.5, cd:2500, desc:'Jet-propulsed punch.'},
+        {id:'c_plasma_cannon', name:'Plasma Cannon', type:'ranged', mult:2.6, cd:3100, unusableIn:['Underwater'], desc:'High-energy blast of plasma.'},
+        {id:'v_reactor_burnout', name:'Reactor Burnout', type:'ranged', mult:3.0, cd:6000, selfHPcostPct:0.10, desc:'Massive thermal damage, costs HP (10%).'}
       ]
     },
     'Cherno Alpha': {
@@ -332,10 +332,10 @@
       power: 10, agility: 3, armor: 10, maxHP: 180,
       height: '85 m', weight: '2,400 t',
       moves: [
-        {id:'plasmf', name:'Plasma Fist', type:'melee', mult:1.6, cd:3000, unusableIn:['Sea'], desc:'Devastating electric melee.'},
-        {id:'flame', name:'Flamethrower', type:'ranged', mult:1.8, cd:3800, unusableInWeather:['Stormy'], desc:'Reactor-based flamethrower.'},
-        {id:'hydraulic', name:'Hydraulic Punch', type:'melee', mult:2.0, cd:4000, desc:'Hydraulics-boosted attack.'},
-        {id:'tcharge', name:'Titan Charge', type:'melee', mult:2.5, cd:5000, unusableIn:['City'], selfHPcostPct:0.08, desc:'Charge with full weight.'}
+        {id:'z_plasma_fist', name:'Plasma Fist', type:'melee', mult:1.6, cd:3000, unusableIn:['Sea'], desc:'Devastating electric melee.'},
+        {id:'x_flamethrower', name:'Flamethrower', type:'ranged', mult:1.8, cd:3800, unusableInWeather:['Stormy'], desc:'Reactor-based flamethrower.'},
+        {id:'c_hydraulic_punch', name:'Hydraulic Punch', type:'melee', mult:2.0, cd:4000, desc:'Hydraulics-boosted attack.'},
+        {id:'v_titan_charge', name:'Titan Charge', type:'melee', mult:2.5, cd:5000, unusableIn:['City'], selfHPcostPct:0.08, desc:'Charge with full weight.'}
       ]
     },
     'Striker Eureka': {
@@ -343,10 +343,10 @@
       power: 10, agility: 10, armor: 9, maxHP: 120,
       height: '76 m', weight: '1,750 t',
       moves: [
-        {id:'six', name:'Six Shooter', type:'ranged', mult:2.5, cd:5500, desc:'Anti-Kaiju Missiles.'},
-        {id:'twin', name:'Twin Slasher', type:'melee', mult:1.0, cd:2450, desc:'Assault Mount 3.25 Sting Blades.'},
-        {id:'rapid', name:'Power Combo', type:'melee', mult:1.1, cd:2350, unusableIn:['Underwater'], desc:'High velocity punches.'},
-        {id:'serrate', name:'Serration', type:'melee', mult:1.3, cd:2550, desc:'Serrated blades attachment to Sting Blades.'}
+        {id:'z_six_shooter', name:'Six Shooter', type:'ranged', mult:2.5, cd:5500, desc:'Anti-Kaiju Missiles.'},
+        {id:'x_twin_slasher', name:'Twin Slasher', type:'melee', mult:1.0, cd:2450, desc:'Assault Mount 3.25 Sting Blades.'},
+        {id:'c_power_combo', name:'Power Combo', type:'melee', mult:1.1, cd:2350, unusableIn:['Underwater'], desc:'High velocity punches.'},
+        {id:'v_serration', name:'Serration', type:'melee', mult:1.3, cd:2550, desc:'Serrated blades attachment to Sting Blades.'}
       ]
     }, 'Crimson Typhoon': {
 	  mark: 'Mark-IV',
@@ -379,6 +379,28 @@
         {id:'x_shellcrusher', name:'Shellcrusher', type:'melee', mult:1.6, cd:3300, desc:'Heavy strike to body.'},
         {id:'c_throwdown', name:'Throwdown', type:'melee', mult:1.9, cd:3700, unusableIn:['Underwater', 'City'], desc:'Powerful counter/reversal.'},
         {id:'v_plasma_mortar', name:'Plasma Mortar', type:'ranged', mult:2.6, cd:4500, unusableIn:['Underwater'], desc:'Powerful shots from rear mortars.'}
+      ]
+    },
+	'Atlas Destroyer': {
+      mark: 'Mark-III',
+      power: 6, agility: 7, armor: 6, maxHP: 150,
+      height: '80 m', weight: '2,040 t',
+      moves: [
+        {id:'z_saber_chain', name:'Saber Chain', type:'ranged', mult:2.5, cd:3300, desc:'Precision chain shot.'},
+        {id:'x_chain_whip', name:'Chain Whip', type:'melee', mult:2.0, cd:2300, desc:'High-velocity strike.'},
+        {id:'c_missile_assault', name:'Missile Assault', type:'ranged', mult:2.8, cd:5400, desc:'Powerful barrage of missiles.'},
+        {id:'v_self_destruct', name:'Self Destruct', type:'ranged', mult:50.0, cd:1000000000, selfHPcostPct:0.999, desc:'Forced reactor meltdown (will kill you).'}
+      ]
+    },
+	'Brawler Yukon': {
+      power: 5, agility: 2, armor: 5, maxHP: 130,
+      mark: 'Mark-I',
+      height: '60 m', weight: '1,379 t',
+      moves: [
+        {id:'z_slash_brawl', name:'Slash Brawl', type:'melee', mult:1.8, cd:2600, desc:'Blade slashing tactic.'},
+        {id:'x_missile_strike', name:'Missile Strike', type:'ranged', unusableIn:['Underwater'], mult:3.0, cd:5500, desc:'Barrage of missile strikes.'},
+        {id:'c_maple_thrash', name:'Maple Thrash', type:'melee', mult:2.2, cd:3500, unusableIn:['City'], desc:'Aggressive, unpredictabled offense.'},
+        {id:'v_counterstrike', name:'Counterstrike', type:'melee', mult:4.0, cd:7000, desc:'Powerful counter/reversal.'}
       ]
     },
 	'Warrior Exodus': {
@@ -484,11 +506,14 @@ if (jaegerPreviewImg) {
 function updateJaegerPreview(name) {
   const map = {
     'Gipsy Danger': 'gipsy.png',
+	'Atlas Destroyer': 'atlas.png',
     'Cherno Alpha': 'cherno.png',
     'Diablo Intercept': 'diablo.png',
     'Striker Eureka': 'striker.png',
     'Crimson Typhoon': 'crimson.png',
+	'Diablo Intercept': 'diablo.png',
     'Coyote Tango': 'coyote.png',
+	'Brawler Yukon': 'brawler.png',
 	'Warrior Exodus': 'warrior.png'
   };
 

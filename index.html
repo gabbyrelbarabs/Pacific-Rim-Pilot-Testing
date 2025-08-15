@@ -389,7 +389,7 @@
         {id:'z_saber_chain', name:'Saber Chain', type:'ranged', mult:2.5, cd:3300, desc:'Precision chain shot.'},
         {id:'x_chain_whip', name:'Chain Whip', type:'melee', mult:2.0, cd:2300, desc:'High-velocity strike.'},
         {id:'c_missile_assault', name:'Missile Assault', type:'ranged', mult:2.8, cd:5400, desc:'Powerful barrage of missiles.'},
-        {id:'v_self_destruct', name:'Self Destruct', type:'ranged', mult:50.0, cd:1000000000, selfHPcostPct:0.999, desc:'Forced reactor meltdown (will kill you).'}
+        {id:'v_self_destruct', name:'Self Destruct', type:'ranged', mult:50.0, cd:100000, selfHPcostPct:0.999, desc:'Forced reactor meltdown (will kill you).'}
       ]
     },
 	'Brawler Yukon': {
@@ -1255,11 +1255,11 @@ function handlePunch(side) {
   if (Math.random() < 0.5) {
     const gain = randInt(10, 30);
     state.distance = clamp(state.distance - gain, 0, 1000);
-    log(`${shortName(state.kaiju)} prowls forward ${gain} m → distance ${Math.round(state.distance)} m`);
+    log(`${shortName(state.kaiju)} moves around ${gain} m → distance ${Math.round(state.distance)} m`);
   } else {
     const gain = randInt(10, 30);
     state.distance = clamp(state.distance + gain, 0, 1000);
-    log(`${shortName(state.kaiju)} shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
+    log(`${shortName(state.kaiju)} moves around ${gain} m → distance ${Math.round(state.distance)} m`);
   }
   if (typeof updateDisplays === 'function') updateDisplays();
 
@@ -1267,14 +1267,6 @@ function handlePunch(side) {
     state.kaijuPassiveApproach = false;
     state.kaijuInitialCharge = true;
     log(`${shortName(state.kaiju)} has detected your position, aggravation detected, battle initiated.`);
-    const gain = randInt(25,45);
-    state.distance = clamp(state.distance - gain, 0, 1000);
-    log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
-    if (typeof updateDisplays === 'function') updateDisplays();
-    if (state.distance <= 60) {
-      state.kaijuInitialCharge = false;
-      log(`${shortName(state.kaiju)} slows to reconsider tactics.`);
-    }
   }
   return;
 }
@@ -1595,7 +1587,7 @@ function handlePunch(side) {
       const kaijuPct = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(2) : '0.00';
       statHtml += `<div class="result-line">Jaeger HP Remaining: <strong style="color:var(--accent)">${jaegerPct}%</strong></div>`;
       statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${kaijuPct}%</strong></div>`;
-      statHtml += `<div class="result-line" style="color:var(--muted)">Pilot retreated — mission counted as failure.</div>`;
+      statHtml += `<div class="result-line" style="color:var(--muted)"> ${state.jaeger.name} retreated — mission failure.</div>`;
     } else if(type === 'lose') {
       const percent = state.kaiju ? ((state.kaiju.hp/state.kaiju.maxHP)*100).toFixed(02) : '0.00';
       statHtml += `<div class="result-line">Kaiju HP Remaining: <strong style="color:var(--accent)">${percent}%</strong></div>`;

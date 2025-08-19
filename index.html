@@ -944,10 +944,10 @@ if (state.distance > 100) {
 
     const loc = (state.battlefield || (state.snapshot && state.snapshot.battlefield) || 'Field');
     const MOVE_RANGES = {
-      'Field':     { forward: [30,55], backward: [25,55] },
-      'City':      { forward: [20,45], backward: [15,45] },
-      'Sea':       { forward: [25,50], backward: [20,45] },
-      'Underwater':{ forward: [20,40], backward: [15,40] }
+      'Field':     { forward: [20,35], backward: [15,35] },
+      'City':      { forward: [15,25], backward: [10,25] },
+      'Sea':       { forward: [15,30], backward: [10,25] },
+      'Underwater':{ forward: [10,20], backward: [5,20] }
     };
     const ranges = MOVE_RANGES[loc] || MOVE_RANGES['Field'];
 
@@ -1176,7 +1176,7 @@ function handlePunch(side) {
       setCooldown(move.id, 600);
       return;
     }
-    if(move.type === 'melee' && state.distance > 40) {
+    if(move.type === 'melee' && state.distance > 30) {
       log(`Too far — ${move.name} can't reach.`);
       setCooldown(move.id, 600);
       return;
@@ -1227,9 +1227,9 @@ function handlePunch(side) {
 
   function computeFinalDamage(baseDamage, attacker, defender, distance) {
     let dodgeMul = 1;
-    if(distance >= 31 && distance <= 40) dodgeMul = 4;
-    else if(distance >= 26 && distance <= 30) dodgeMul = 3;
-    else if(distance >= 21 && distance <= 25) dodgeMul = 2;
+    if(distance >= 21 && distance <= 30) dodgeMul = 4;
+    else if(distance >= 16 && distance <= 20) dodgeMul = 3;
+    else if(distance >= 11 && distance <= 15) dodgeMul = 2;
     else dodgeMul = 1;
     let dodgeChance = clamp(defender.agility/100 * dodgeMul, 0, 0.9);
     if(defender === state.kaiju && defender.hp < defender.maxHP*0.3) {
@@ -1253,11 +1253,11 @@ function handlePunch(side) {
 	
 	if (state.kaijuPassiveApproach) {
   if (Math.random() < 0.5) {
-    const gain = randInt(10, 30);
+    const gain = randInt(5, 20);
     state.distance = clamp(state.distance - gain, 0, 1000);
     log(`${shortName(state.kaiju)} moves around ${gain} m → distance ${Math.round(state.distance)} m`);
   } else {
-    const gain = randInt(10, 30);
+    const gain = randInt(5, 20);
     state.distance = clamp(state.distance + gain, 0, 1000);
     log(`${shortName(state.kaiju)} moves around ${gain} m → distance ${Math.round(state.distance)} m`);
   }
@@ -1273,7 +1273,7 @@ function handlePunch(side) {
 
     if(state.kaijuInitialCharge) {
       if(state.distance > 60) {
-        const gain = randInt(25,45);
+        const gain = randInt(15,25);
         state.distance = clamp(state.distance - gain, 0, 1000);
         log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
         updateDisplays();
@@ -1310,7 +1310,7 @@ function handlePunch(side) {
 
     if(state.kaijuRushMode) {
       if(state.distance > 20) {
-        const gain = randInt(25,45);
+        const gain = randInt(15,25);
         state.distance = clamp(state.distance - gain, 0, 1000);
         log(`${shortName(state.kaiju)} rushes forward ${gain} m → distance ${Math.round(state.distance)} m`);
         updateDisplays();
@@ -1335,7 +1335,7 @@ function handlePunch(side) {
 
     if(!state.kaijuPanicSuppressed && lowHP && !(cat === 'V' || cat === 'VI')) {
       if(state.kaijuPanic || Math.random() < 0.7) {
-        const baseMove = randInt(25,45);
+        const baseMove = randInt(15,25);
         const gain = Math.round(baseMove * 1.2);
         state.distance = clamp(state.distance + gain, 0, 1000);
         state.kaijuPanic = true;
@@ -1347,7 +1347,7 @@ function handlePunch(side) {
 
     if(state.kaijuPanic && lowHP && !(cat === 'V' || cat === 'VI')) {
       if(Math.random() < 0.5) {
-        const gain = randInt(15,35);
+        const gain = randInt(10,25);
         state.distance = clamp(state.distance + gain, 0, 1000);
         log(`${shortName(state.kaiju)} continues to panic and retreats ${gain} m → distance ${Math.round(state.distance)} m`);
         updateDisplays();
@@ -1366,7 +1366,7 @@ function handlePunch(side) {
       queueKaijuAttack();
       return;
     } else if(action === 'approach') {
-      const gain = randInt(25,45);
+      const gain = randInt(15,25);
       state.distance = clamp(state.distance - gain, 0, 1000);
       log(`${shortName(state.kaiju)} charges forward ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays();
@@ -1389,7 +1389,7 @@ function handlePunch(side) {
       }
 
     } else {
-      const gain = randInt(25,45);
+      const gain = randInt(15,25);
       state.distance = clamp(state.distance + gain, 0, 1000);
       log(`${shortName(state.kaiju)} shifts back ${gain} m → distance ${Math.round(state.distance)} m`);
       updateDisplays();
@@ -1406,7 +1406,7 @@ function handlePunch(side) {
     }
     if(move.type === 'ranged' && state.distance >= 100) {
       log(`${shortName(state.kaiju)} attempted ${move.name} but distance ${Math.round(state.distance)} m is too far — it moves closer instead.`);
-      const g = randInt(20,45);
+      const g = randInt(8,20);
       state.distance = clamp(state.distance - g, 0, 1000);
       updateDisplays(); return;
     }
@@ -1470,9 +1470,9 @@ function handlePunch(side) {
     }
     function passiveHitRoll() {
       let dodgeMul = 1;
-      if(d >= 31 && d <= 40) dodgeMul = 4;
-      else if(d >= 26 && d <= 30) dodgeMul = 3;
-      else if(d >= 21 && d <= 25) dodgeMul = 2;
+      if(d >= 21 && d <= 30) dodgeMul = 4;
+      else if(d >= 16 && d <= 20) dodgeMul = 3;
+      else if(d >= 11 && d <= 15) dodgeMul = 2;
       else dodgeMul = 1;
       let dodgeChance = clamp(state.jaeger.agility/100 * dodgeMul, 0, 0.9);
       if(state.jaeger.hp < state.jaeger.maxHP*0.3) { dodgeChance *= 1.1; dodgeChance = Math.min(dodgeChance, 0.95); }
@@ -1485,9 +1485,9 @@ function handlePunch(side) {
         log(`${shortName(state.kaiju)} used ${move.name} (${attackSide}). ${state.jaeger.name} evaded the hit!`);
       } else {
         let dodgeMulDbg = 1;
-      if(d >= 31 && d <= 40) dodgeMulDbg = 4;
-      else if(d >= 26 && d <= 30) dodgeMulDbg = 3;
-      else if(d >= 21 && d <= 25) dodgeMulDbg = 2;
+      if(d >= 21 && d <= 30) dodgeMulDbg = 4;
+      else if(d >= 16 && d <= 20) dodgeMulDbg = 3;
+      else if(d >= 11 && d <= 15) dodgeMulDbg = 2;
       else dodgeMulDbg = 1;
       let dodgeChanceDbg = clamp(state.jaeger.agility/100 * dodgeMulDbg, 0, 0.9);
       if(state.jaeger.hp < state.jaeger.maxHP*0.3) { dodgeChanceDbg *= 1.1; dodgeChanceDbg = Math.min(dodgeChanceDbg, 0.95); }
